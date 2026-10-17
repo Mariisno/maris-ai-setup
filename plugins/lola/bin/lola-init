@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# lola-init — create Lola's files for a new user. Idempotent: never overwrites anything,
+# only creates what is missing, and says what it did.
+#
+#   ~/.lola/config.sh                   the ONE config file (from templates/config.example.sh)
+#   <inbox dir>/<LEAD>.md               one inbox per lead
+#   <assignment dir>/                   long assignments land here
+#   <notes dir>/Waiting on you.md       the queue
+#   <notes dir>/session-log/            one file per day
+#   <notes dir>/insight/                HARVEST's daily and weekly notes
+set -uo pipefail
+here="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+root="$here/.."
+
+made=(); kept=()
+mk_dir()  { if [ -d "$1" ]; then kept+=("$1"); else mkdir -p "$1" && made+=("$1/"); fi; }
+mk_file() { # <path> <template>
+  if [ -e "$1" ]; then kept+=("$1"); else mkdir -p "$(dirname "$1")" && cp "$2" "$1" && made+=("$1"); fi
+}
+
+LOLA_HOME="${LOLA_HOME:-$HOME/.lola}"
+LOLA_CONFIG="${LOLA_CONFIG:-$LOLA_HOME/config.sh}"
+mk_file "$LOLA_CONFIG" "$root/templates/config.example.sh"
+
+# Read the config now that it exists.
+# shellcheck source=../lib/lola-config.sh
+. "$root/lib/lola-config.sh"
+
+mk_dir "$LOLA_INBOX_DIR"
+mk_dir "$LOLA_ASSIGNMENT_DIR"
+mk_dir "$LOLA_NOTES_DIR"
+mk_dir "$LOLA_SESSION_LOG_DIR"
+mk_dir "$LOLA_INSIGHT_DIR"
+mk_file "$LOLA_QUEUE_FILE" "$root/templates/waiting-on-you.md"
+while IFS= read -r lead; do
+  [ -n "$lead" ] && mk_file "$LOLA_INBOX_DIR/$lead.md" "$root/templates/inbox.md"
+done < <(lola_lead_names)
+
+echo "Lola is set up."
+[ ${#made[@]} -gt 0 ] && printf '  created  %s\n' "${made[@]}"
+[ ${#kept[@]} -gt 0 ] && printf '  kept     %s\n' "${kept[@]}"
+echo
+echo "Config: $LOLA_CONFIG — edit it to name your leads, point at your notes, add accounts."
+missing=()
+for t in tmux jq claude python3; do command -v "$t" >/dev/null 2>&1 || missing+=("$t"); done
+[ ${#missing[@]} -gt 0 ] && echo "Missing on PATH: ${missing[*]}"
+exit 0

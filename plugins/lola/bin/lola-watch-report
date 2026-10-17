@@ -1,0 +1,269 @@
+#!/usr/bin/env bash
+# lola-watch-report — deterministic hygiene checks across all leads, for the WATCH role.
+# Prints a short Markdown report. Reads only: tmux, Claude Code's session registries, the
+# queue, inboxes, the optional hygiene and method-log tables, and `gh` (read). Writes nothing.
+#
+#   lola-watch-report [--no-gh]
+#
+# Sources:
+#  - <config dir>/sessions/<pid>.json: Claude Code's own session registry, one per account
+#    config dir in LOLA_ACCOUNTS. Has `tmux` ("session:@window.%pane"), `version`, `status`
+#    (idle/busy) and `statusUpdatedAt`. The folder tells which account a session runs on.
+#  - Activity is measured from the registry, not tmux `window_activity`: a status line that
+#    redraws every second makes window activity useless for claude panes.
+set -uo pipefail
+here="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../lib/lola-config.sh
+. "$here/../lib/lola-config.sh"
+lola_export
+
+NO_GH=0
+[ "${1:-}" = "--no-gh" ] && NO_GH=1
+[ -n "$LOLA_GITHUB_USER" ] || NO_GH=1
+command -v gh >/dev/null 2>&1 || NO_GH=1
+
+INSTALLED=$(claude --version 2>/dev/null | awk '{print $1}')
+TMPD=$(mktemp -d)
+trap 'rm -rf "${TMPD}"' EXIT
+
+tmux list-panes -a -F "#{pane_id}	#{session_name}	#{window_name}	#{${LOLA_LABEL_OPTION}}	#{pane_current_command}	#{window_activity}	#{pane_pid}" \
+  > "${TMPD}/panes.tsv" 2>/dev/null
+while IFS=$'\t' read -r pid _rest; do
+  tmux capture-pane -p -t "${pid}" -S -40 2>/dev/null > "${TMPD}/cap${pid}.txt"
+done < "${TMPD}/panes.tsv"
+
+if [ "${NO_GH}" = 0 ]; then
+  gh search prs --author "$LOLA_GITHUB_USER" --state open --limit 50 \
+    --json repository,number,title,updatedAt,url > "${TMPD}/prs.json" 2>"${TMPD}/prs.err" || true
+fi
+
+INSTALLED="${INSTALLED}" TMPD="${TMPD}" NO_GH="${NO_GH}" python3 -I - <<'PY'
+import os, re, json, glob, time, datetime as dt
+
+E = os.environ
+T = E["TMPD"]; INSTALLED = E["INSTALLED"]; NO_GH = E["NO_GH"] == "1"
+now = time.time(); today = dt.date.today()
+LEADS = [l.split("|")[0] for l in E["LOLA_LEADS_LINES"].splitlines() if l.strip()]
+ACCOUNTS = [l.split("|") for l in E["LOLA_ACCOUNTS_LINES"].splitlines() if l.strip()]
+SPEC = E["LOLA_SPECIALIST_SESSION"]
+SHELLS = set(E["LOLA_SHELLS"].split())
+funn = 0
+def flag(n=1):
+    global funn; funn += n
+
+out = []; P = out.append
+P(f"# Watch report — {dt.datetime.now():%Y-%m-%d %H:%M}")
+P("")
+
+def is_lead(label):
+    return (label.split(" ")[0] if label else "") in LEADS
+
+def pdate(s):
+    """ISO 2026-10-06, or day.month (06.10) in the current or previous year."""
+    m = re.search(r"(\d{4})-(\d\d)-(\d\d)", s)
+    if m:
+        try: return dt.date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+        except ValueError: return None
+    m = re.match(r"\s*(\d{1,2})\.(\d{1,2})", s)
+    if not m: return None
+    d, mo = int(m.group(1)), int(m.group(2))
+    y = today.year if mo <= today.month else today.year - 1
+    try: return dt.date(y, mo, d)
+    except ValueError: return None
+
+def table_rows(text, header_starts):
+    rows = []
+    for l in text.splitlines():
+        if not l.startswith("|") or l.startswith("|---"): continue
+        c = [x.strip() for x in l.strip().strip("|").split("|")]
+        if any(c[0].startswith(h) for h in header_starts): continue
+        rows.append(c)
+    return rows
+
+# ---------- 1. Panes ----------
+panes = []
+for line in open(f"{T}/panes.tsv"):
+    pid, sess, win, label, cmd, wact, ppid = (line.rstrip("\n").split("\t") + [""] * 7)[:7]
+    f = f"{T}/cap{pid}.txt"
+    cap = open(f, errors="replace").read() if os.path.exists(f) else ""
+    panes.append(dict(pid=pid, sess=sess, win=win, label=label, cmd=cmd, wact=int(wact or 0), cap=cap))
+
+reg = {}
+for acct in ACCOUNTS:
+    name, cdir = acct[0], (acct[1] if len(acct) > 1 else "")
+    for f in glob.glob(f"{cdir}/sessions/*.json"):
+        try: j = json.load(open(f))
+        except Exception: continue
+        m = re.search(r"(%\d+)$", j.get("tmux") or "")
+        if not m: continue
+        try: os.kill(int(j["pid"]), 0)
+        except Exception: continue
+        reg[m.group(1)] = dict(acct=name, ver=j.get("version", "?"), status=j.get("status", "?"),
+                               since=(j.get("statusUpdatedAt") or 0) / 1000)
+
+def last_lines(cap, n=12):
+    return [l for l in cap.splitlines() if l.strip()][-n:]
+
+P("## Panes")
+P("")
+P("| Pane | Where | Label | Running | Account | Status | Flags |")
+P("|---|---|---|---|---|---|---|")
+for p in panes:
+    r = reg.get(p["pid"]); flags = []
+    is_claude = r is not None
+    running = f"claude {r['ver']}" if r else p["cmd"]
+    status = ""
+    if r:
+        idle_min = (now - r["since"]) / 60 if r["since"] else 0
+        status = f"idle {idle_min:.0f} min" if r["status"] == "idle" else r["status"]
+        if INSTALLED and r["ver"] != INSTALLED:
+            flags.append(f"version {r['ver']} ≠ installed {INSTALLED}")
+    lead = is_lead(p["label"])
+    if is_claude and not p["label"].strip():
+        flags.append("no label")
+    if p["label"].strip() and not lead and "·" in p["label"] and p["sess"] != SPEC:
+        flags.append(f"specialist outside {SPEC}")
+    if p["sess"] == SPEC and not is_claude and p["cmd"] in SHELLS:
+        idle = (now - p["wact"]) / 60 if p["wact"] else 0
+        flags.append(f"empty shell in {SPEC} ({idle:.0f} min quiet)")
+    if is_claude and not lead and p["sess"] == SPEC:
+        tail = last_lines(p["cap"])
+        composer = [l for l in tail if l.lstrip().startswith("❯")]
+        if composer and composer[-1].strip() == "❯ /exit":
+            flags.append("finished: `/exit` stands unsent")
+        elif any(l.strip().lower() in ("done", "done.") for l in tail):
+            flags.append("finished: last line «done»")
+        if r and r["status"] == "idle" and (now - r["since"]) > 30 * 60:
+            flags.append(f"idle {(now - r['since']) / 60:.0f} min (> 30)")
+    if flags: flag()
+    P(f"| `{p['pid']}` | {p['sess']}:{p['win']} | {p['label'] or '—'} | {running} | "
+      f"{r['acct'] if r else '—'} | {status or '—'} | {' · '.join(flags) or '✓'} |")
+P("")
+P(f"Installed CLI: `{INSTALLED or 'unknown'}`.")
+P("")
+
+# ---------- 2. The queue ----------
+P("## Waiting on you")
+P("")
+q = E["LOLA_QUEUE_FILE"]
+if os.path.exists(q):
+    txt = open(q).read()
+    sec = txt.split("## Open", 1)[1] if "## Open" in txt else ""
+    sec = re.split(r"\n## ", sec, 1)[0]
+    rows = [c for c in table_rows(sec, ("Added",)) if len(c) >= 4]
+    dated = [(pdate(c[0]), c) for c in rows if pdate(c[0])]
+    P(f"**{len(rows)} open rows.**")
+    if dated:
+        old = min(dated, key=lambda x: x[0])
+        P(f"Oldest: **{old[1][0]}** ({(today - old[0]).days} d) — {re.sub(r'[*`]', '', old[1][1])[:90]}")
+    def key_of(cell):
+        m = (re.search(r"\[\[([^\]|#]+)", cell) or re.search(r"\]\(([^)]+)\)", cell)
+             or re.search(r"(https://\S+?)[)\s]", cell + " ") or re.search(r"`([^`]+)`", cell))
+        return m.group(1).strip() if m else None
+    seen = {}
+    for c in rows:
+        k = key_of(c[3])
+        if k: seen.setdefault(k, []).append(c[0])
+    dups = {k: v for k, v in seen.items() if len(v) > 1}
+    if dups:
+        flag(len(dups))
+        P(""); P("Possible duplicates (same «Where it is»):")
+        for k, v in dups.items():
+            P(f"- `{k}` — {len(v)} rows ({', '.join(v)})")
+else:
+    P(f"No queue file at `{q}`. Run `lola-init`.")
+P("")
+
+# ---------- 3. Inboxes ----------
+P("## Inboxes")
+P("")
+P("| File | Size | Last written |")
+P("|---|---|---|")
+warn_kb = float(E.get("LOLA_INBOX_WARN_KB") or 60)
+for f in sorted(glob.glob(os.path.join(E["LOLA_INBOX_DIR"], "*.md"))):
+    kb = os.path.getsize(f) / 1024
+    w = f" ⚠️ > {warn_kb:.0f} KB" if kb > warn_kb else ""
+    if w: flag()
+    P(f"| `{os.path.basename(f)}` | {kb:.0f} KB{w} | {dt.datetime.fromtimestamp(os.path.getmtime(f)):%Y-%m-%d %H:%M} |")
+P("")
+
+# ---------- 4. Hygiene jobs (optional) ----------
+hf = E["LOLA_HYGIENE_FILE"]
+if os.path.exists(hf):
+    P("## Hygiene jobs")
+    P("")
+    live = " ".join((p["label"] + " " + p["win"]).upper() for p in panes)
+    late, noowner = [], []
+    for c in table_rows(open(hf).read(), ("Job",)):
+        if len(c) < 4 or c[0].startswith("~~"): continue
+        job = re.sub(r"[*`]", "", c[0])[:55]
+        rhythm, owner, last_run = c[1].lower(), re.sub(r"[*`]", "", c[2]), c[3]
+        period = 1 if "daily" in rhythm else 7 if "weekly" in rhythm else 31 if "monthly" in rhythm else None
+        dates = [d for d in (pdate(m) for m in re.findall(r"\d{4}-\d\d-\d\d|\b\d{1,2}\.\d{1,2}\b", last_run)) if d and d <= today]
+        if period and "automatic" not in owner.lower():
+            last = max(dates) if dates else None
+            age = (today - last).days if last else None
+            if age is None or age > period:
+                sev = "🔴 two periods+" if (age is None or age > 2 * period) else "🟡"
+                late.append((sev, job, owner, last.isoformat() if last else "never", age, period))
+        for name in LEADS:
+            if name.upper() in owner.upper() and name.upper() not in live:
+                noowner.append((job, name))
+    if late:
+        flag(len(late))
+        P(f"**{len(late)} rows older than their rhythm:**")
+        P("")
+        P("| Job | Owner | Last run | Age | Rhythm | |")
+        P("|---|---|---|---|---|---|")
+        for sev, j, o, last, age, per in sorted(late, key=lambda x: -(x[4] or 999)):
+            P(f"| {j} | {o[:30]} | {last} | {age if age is not None else '—'} d | {per} d | {sev} |")
+    if noowner:
+        flag(len(noowner))
+        P("")
+        for j, name in noowner:
+            P(f"**Owner `{name}` has no pane** — {j}")
+    if not late and not noowner:
+        P("All jobs within their rhythm. ✓")
+    P("")
+
+# ---------- 5. Method log (optional) ----------
+ml = E["LOLA_METHOD_LOG"]
+if os.path.exists(ml):
+    P("## Method log")
+    P("")
+    stale = []
+    for c in table_rows(open(ml).read(), ("Date",)):
+        if len(c) < 3 or "⏳" not in c[-1] or "✅" in c[-1]: continue
+        d = pdate(c[0])
+        if d and (today - d).days > 7:
+            stale.append((d, re.sub(r"[*`]", "", c[1])[:80]))
+    if stale:
+        flag(len(stale))
+        P(f"**{len(stale)} ⏳ rows older than 7 days:**")
+        for d, t in sorted(stale):
+            P(f"- {d.isoformat()} ({(today - d).days} d) — {t}")
+    else:
+        P("No ⏳ rows older than 7 days. ✓")
+    P("")
+
+# ---------- 6. GitHub (optional) ----------
+if not NO_GH:
+    P(f"## Open pull requests by {E['LOLA_GITHUB_USER']}")
+    P("")
+    try:
+        prs = json.load(open(f"{T}/prs.json"))
+        for pr in sorted(prs, key=lambda x: x["updatedAt"]):
+            upd = dt.datetime.fromisoformat(pr["updatedAt"].replace("Z", "+00:00")).date()
+            age = (today - upd).days
+            w = " ⚠️ quiet > 7 d" if age > 7 else ""
+            if w: flag()
+            P(f"- `{pr['repository']['nameWithOwner']}#{pr['number']}` — {pr['title'][:70]} (last {upd.isoformat()}, {age} d){w}")
+        if not prs: P("None. ✓")
+    except Exception:
+        P("Could not read (`gh` failed): " + open(f"{T}/prs.err").read().strip()[:200])
+    P("")
+
+P("---")
+P(f"**Total: {funn} findings.**" if funn else "**Green: no findings.**")
+print("\n".join(out))
+PY

@@ -1,0 +1,8 @@
+{
+  "_comment": "Merge these into <config dir>/settings.json by hand. install.sh prints them and never edits settings.",
+  "statusLine": {
+    "type": "command",
+    "command": "~/.claude/statusline.sh",
+    "refreshInterval": 1
+  }
+}

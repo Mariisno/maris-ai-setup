@@ -1,0 +1,69 @@
+#!/usr/bin/env bash
+# lola-send <pane-id> <message> — deliver a message to a specialist pane and verify it landed.
+#
+# Paste-buffer + Enter, then check the message stands as sent in the scrollback, and press
+# Enter once more if it is still sitting in the composer (slash-autocomplete can swallow
+# the first Enter). Messages longer than LOLA_SEND_MAX_CHARS are written to an assignment
+# file and the pane only gets a short pointer: a long paste can arrive in part, a file can't.
+#
+# Exit 0 = delivered · 1 = not delivered · 2 = refused: the pane is outside the specialist
+# session, or shows a menu or prompt (answer it first).
+set -euo pipefail
+here="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../lib/lola-config.sh
+. "$here/../lib/lola-config.sh"
+
+[[ $# -eq 2 ]] || { echo "ERROR: usage: lola-send <pane> <message>"; exit 1; }
+pane="$1"; msg="$2"
+MAX="$LOLA_SEND_MAX_CHARS"
+
+# Only into Lola's own specialist session. A lead's pane, or a pane you work in, never gets
+# typed into: leads hear from specialists through inbox files.
+where=$(tmux display -p -t "$pane" '#{session_name}' 2>/dev/null) || { echo "ERROR: no pane $pane"; exit 1; }
+if [ "$where" != "$LOLA_SPECIALIST_SESSION" ] || ! lola_owns_session "$where"; then
+  echo "REFUSED: $pane is in session '$where'. Lola only types into its own specialist session '$LOLA_SPECIALIST_SESSION' (created by Lola, marked @lola). Nothing sent."
+  exit 2
+fi
+
+# Never type into an open menu or permission prompt: digits in the message can answer it.
+if tmux capture-pane -t "$pane" -p | lola_shows_menu; then
+  echo "WAIT: $pane shows a menu or prompt. Answer it first (or wait), then send again."; exit 2
+fi
+
+file=""
+if (( ${#msg} > MAX )); then
+  mkdir -p "$LOLA_ASSIGNMENT_DIR"
+  base="${pane#%}-$(date +%Y%m%d-%H%M%S)"; file="$LOLA_ASSIGNMENT_DIR/${base}.md"; n=2
+  while [[ -e "$file" ]]; do file="$LOLA_ASSIGNMENT_DIR/${base}-${n}.md"; n=$((n+1)); done
+  printf '%s\n' "$msg" > "$file"
+  msg="Your assignment is in the file ${file}. Read the whole file and do what it says."
+fi
+
+# Verification marker: short and on ONE screen line. Matching a long prefix fails when the
+# terminal wraps it over two lines. A file name has no spaces, so an app that word-wraps
+# keeps it whole, and `capture-pane -J` rejoins lines the terminal itself wrapped.
+if [[ -n "$file" ]]; then
+  stamp="$(basename "$file")"
+else
+  stamp="${msg%%$'\n'*}"; stamp="${stamp:0:20}"
+fi
+
+# paste-buffer instead of send-keys -l: the message arrives atomically. Typing character by
+# character can lose a race against a startup screen.
+printf '%s' "$msg" | tmux load-buffer -b lolasend -
+tmux paste-buffer -b lolasend -d -t "$pane"
+sleep 1
+tmux send-keys -t "$pane" Enter
+sleep 2
+
+# The composer = the lines between the last two ─ rules at the bottom of the pane.
+composer() { tmux capture-pane -J -t "$pane" -p | awk '/^─/{n++; buf[n]=""; next} {buf[n]=buf[n] $0 "\n"} END{printf "%s", buf[n-1]}'; }
+if tmux capture-pane -J -t "$pane" -p -S -200 | grep -qF -- "$stamp"; then
+  if [[ "$(composer)" == *"$stamp"* ]]; then
+    tmux send-keys -t "$pane" Enter; sleep 2
+    [[ "$(composer)" == *"$stamp"* ]] && { echo "ERROR: message stands unsent in $pane"; exit 1; }
+  fi
+  echo "OK: delivered to $pane ($(tmux display -p -t "$pane" "#{${LOLA_LABEL_OPTION}}"))${file:+ — assignment in $file}"
+else
+  echo "ERROR: message not found in the scrollback of $pane${file:+ (the assignment is in $file)}"; exit 1
+fi

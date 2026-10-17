@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+# lola-dig-guard — hook that enforces rule four: "the lead doesn't dig".
+#
+# A lead that reads code, docs and long files itself fills its own context and stops
+# routing. Prose reminders didn't hold, so this is a hook. Same script, two events:
+#   UserPromptSubmit → reset the counter for the session (a new turn from you).
+#   PreToolUse       → count reading calls; at N (and every N after) add a WARNING to the
+#                      model's context. Never a block: a block can lock a lead mid-fix.
+#
+# Applies ONLY to lead panes, decided by the pane label (LOLA_LABEL_OPTION, @label by default): its first word must be a
+# lead NAME in LOLA_LEADS. Outside tmux, without a label or without a match it does nothing.
+# Specialists dig freely. Calls from subagents (agent_id in the input) don't count: they
+# ARE the delegation.
+here="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../lib/lola-config.sh
+. "$here/../lib/lola-config.sh"
+
+N="${LOLA_DIG_GUARD_EVERY:-4}"
+[ "$N" -gt 0 ] 2>/dev/null || exit 0   # 0 (or junk) turns the guard off
+STATE_DIR="${TMPDIR:-/tmp}/lola-dig-guard"
+
+input=$(cat)
+
+# --- Is this a lead pane? --------------------------------------------------------------
+[ -n "${TMUX_PANE:-}" ] || exit 0
+command -v jq >/dev/null 2>&1 || exit 0
+label=$(tmux display -p -t "$TMUX_PANE" "#{${LOLA_LABEL_OPTION}}" 2>/dev/null)
+[ -n "$label" ] || exit 0
+lola_is_lead "$label" || exit 0
+lead="${label%% *}"
+
+event=$(printf '%s' "$input" | jq -r '.hook_event_name // ""')
+sid=$(printf '%s' "$input" | jq -r '.session_id // ""')
+[ -n "$sid" ] || exit 0
+mkdir -p "$STATE_DIR" 2>/dev/null || exit 0
+counter="$STATE_DIR/${sid}.count"
+
+# --- New turn from you: reset ----------------------------------------------------------
+if [ "$event" = "UserPromptSubmit" ]; then
+  : > "$counter"
+  exit 0
+fi
+[ "$event" = "PreToolUse" ] || exit 0
+
+agent_id=$(printf '%s' "$input" | jq -r '.agent_id // ""')
+[ -z "$agent_id" ] || exit 0
+
+# --- Is the call digging? --------------------------------------------------------------
+tool=$(printf '%s' "$input" | jq -r '.tool_name // ""')
+dig=""
+case "$tool" in
+  Read|WebFetch|WebSearch|Grep) dig="$tool" ;;
+  Bash)
+    cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // ""')
+    # Heredoc content is data, not commands.
+    cmd="${cmd%%<<*}"
+    # Fetching from the web anywhere in the command.
+    if [[ "$cmd" =~ (^|[^[:alnum:]_-])(defuddle|curl|wget)([[:space:]]|$) ]]; then
+      dig="Bash:${BASH_REMATCH[2]}"
+    else
+      # Reading files: the leading word of each clause (split on && ; || and newlines,
+      # NOT on | — `… | head` is a filter, not a read).
+      clauses=$(printf '%s' "$cmd" | sed -E 's/(&&|\|\||;)/\n/g')
+      while IFS= read -r c; do
+        c="${c#"${c%%[![:space:]]*}"}"
+        word="${c%% *}"
+        case "$word" in
+          cat) [[ "$c" == *">"* ]] || { dig="Bash:cat"; break; } ;;  # `cat > f <<EOF` writes
+          head|tail|less|rg|grep|find) dig="Bash:$word"; break ;;
+          sed) [[ "$c" == *" -n"* ]] && { dig="Bash:sed-n"; break; } ;;
+        esac
+      done <<< "$clauses"
+    fi
+    ;;
+esac
+[ -n "$dig" ] || exit 0
+
+# --- Count, and warn at N, 2N, 3N … ----------------------------------------------------
+printf '%s\n' "$dig" >> "$counter"
+count=$(wc -l < "$counter" | tr -d ' ')
+[ $((count % N)) -eq 0 ] || exit 0
+
+list=$(sort "$counter" | uniq -c | awk '{printf "%s%s×%s", (NR>1?", ":""), $1, $2}')
+msg="⚠️ Rule four (${lead}): this is digging. Delegate it to a specialist pane. You have made ${count} reading calls this turn (${list}). The lead keeps judgment, routing and the conversation with ${LOLA_USER_NAME}; code digging, doc and web lookups and reading long files go to a named specialist (model and effort verified before the assignment is sent). If this is a small gate check you must finish, say so explicitly. Otherwise stop and delegate."
+
+jq -n --arg m "$msg" '{hookSpecificOutput: {hookEventName: "PreToolUse", additionalContext: $m}, systemMessage: $m}'
+exit 0

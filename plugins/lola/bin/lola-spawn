@@ -1,0 +1,222 @@
+#!/usr/bin/env bash
+# lola-spawn — start a specialist in one move.
+#
+#   lola-spawn --role <group/role> --domain <domain> [--name NAME] [--window W]
+#              [--model M] [--effort E] [--dry-run] [assignment]
+#   lola-spawn <window> <label> <model> <effort> [assignment]          (positional form)
+#
+# What it does:
+#   1. a new window in the detached specialist session (created and marked @lola if missing),
+#      never in a session you are looking at, and never in a same-named session Lola
+#      didn't create
+#   2. a label on the pane (tmux option LOLA_LABEL_OPTION, @label by default): the label,
+#      not the pane title, is identity
+#   3. `claude --name <window> --model <m> --effort <e>; exit`, so the pane closes itself
+#      when the specialist runs /exit. Effort goes in as a FLAG, never as `/effort`, which
+#      is saved to settings and changes every later session. --name makes the session
+#      addressable by its window name in ListAgents / SendMessage.
+#   4. waits for Claude Code's startup banner and checks model, effort and plan label
+#   5. sends the assignment through lola-send (long ones go as a file automatically)
+#
+# Role form: the role file gives the label's craft word and the default model and effort;
+# the domain file gives the domain name and the lead. The label becomes
+# "<ROLE> · <Domain> (<LEAD>)", or "NAME · <ROLE> · <Domain> (<LEAD>)" with --name, and the
+# assignment is prefaced with "Read <role file> and <domain file> first."
+#
+# Cap: a lead may have LOLA_SPECIALIST_CAP specialists alive at once (panes in the specialist
+# session whose label ends in "(<LEAD>)"; WATCH and HARVEST never count). At the cap nothing
+# is started. LOLA_CAP=0 overrides for one spawn, LOLA_CAP=N changes the cap. --cap-check
+# prints the count and exits. A lock makes two simultaneous spawns count one after the other.
+#
+# <model> takes either a full model id or an alias:
+#   claude-opus-5-5, claude-fable-5-1     → checked as "Opus 5.5", "Fable 5.1"
+#   claude-haiku-4-5-20251001             → the date suffix is ignored: "Haiku 4.5"
+#   opus, sonnet, haiku, fable            → only the family is checked: "Opus <any version>"
+#
+# Prints the pane id on the last line. Exit 1 if the banner doesn't match: then nothing was
+# sent, the pane is closed again, and the banner it showed is printed. Exit 3 at the cap.
+#
+#   lola-spawn review "MAJA · reviewer (LOLA)" claude-opus-5-5 high "You are MAJA …"
+#   lola-spawn --role ux/critic --domain work --name CILLA "Review the checkout flow …"
+#   LOLA_ACCOUNT=personal lola-spawn …   # start on another configured account
+#   LOLA_CWD=~/code/app lola-spawn …     # start in another directory
+set -uo pipefail
+here="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../lib/lola-config.sh
+. "$here/../lib/lola-config.sh"
+
+usage() {
+  echo "Usage: lola-spawn --role <group/role> --domain <domain> [--name N] [--window W] [--model M] [--effort E] [--dry-run] [assignment]"
+  echo "       lola-spawn <window> <label> <model> <effort> [assignment]"
+}
+
+# --- Arguments --------------------------------------------------------------------------
+DRY=""; CAP_CHECK=""; args=()
+for a in "$@"; do case "$a" in --dry-run) DRY=1 ;; --cap-check) CAP_CHECK=1 ;; *) args+=("$a") ;; esac; done
+set -- ${args[@]+"${args[@]}"}
+
+lead=""; role=""; domain=""; name=""
+if [ "${1:-}" != "${1#--}" ]; then
+  window=""; model=""; effort=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --role|--domain|--name|--window|--model|--effort)
+        [ $# -ge 2 ] || { echo "ERROR: $1 needs a value."; usage; exit 2; } ;;
+    esac
+    case "$1" in
+      --role)   role="$2"; shift 2 ;;
+      --domain) domain="$2"; shift 2 ;;
+      --name)   name="$2"; shift 2 ;;
+      --window) window="$2"; shift 2 ;;
+      --model)  model="$2"; shift 2 ;;
+      --effort) effort="$2"; shift 2 ;;
+      --) shift; break ;;
+      -*) echo "ERROR: unknown option $1."; usage; exit 2 ;;
+      *) break ;;
+    esac
+  done
+  assignment="${1:-}"
+  R="$LOLA_ROLES_DIR"
+  rfile="$R/$role.md"; dfile="$R/domains/$domain.md"
+  if [ -z "$role" ] || [ ! -f "$rfile" ]; then
+    echo "ERROR: unknown role '${role}'. Roles in $R:"
+    (cd "$R" 2>/dev/null && find . -path ./domains -prune -o -name '*.md' ! -name README.md -print | sed 's|^\./||; s|\.md$||' | sort | sed 's/^/  /')
+    exit 2
+  fi
+  if [ -z "$domain" ] || [ ! -f "$dfile" ]; then
+    echo "ERROR: unknown domain '${domain}'. Domains in $R/domains: $(ls "$R/domains" 2>/dev/null | sed 's/\.md$//' | tr '\n' ' ')"
+    exit 2
+  fi
+  craft=$(lola_role_meta "$rfile" role); dname=$(lola_role_meta "$dfile" name); lead=$(lola_role_meta "$dfile" lead)
+  model="${model:-$(lola_role_meta "$rfile" model)}"; effort="${effort:-$(lola_role_meta "$rfile" effort)}"
+  if [ -z "$craft" ] || [ -z "$model" ] || [ -z "$effort" ] || [ -z "$dname" ] || [ -z "$lead" ]; then
+    echo "ERROR: the machine line is missing or incomplete in $rfile or $dfile (role=, model=, effort= · name=, lead=)."; exit 2
+  fi
+  label="$craft · $dname ($lead)"; [ -n "$name" ] && label="$name · $label"
+  window="${window:-$(basename "$role")-$domain}"
+  preface="Read $rfile and $dfile first."
+  assignment="$preface${assignment:+ $assignment}"
+else
+  [ $# -ge 4 ] || { usage; exit 2; }
+  window="$1"; label="$2"; model="$3"; effort="$4"; assignment="${5:-}"
+  lead=$(printf '%s' "$label" | sed -n 's/.*(\([^()]*\))[[:space:]]*$/\1/p')
+fi
+S="$LOLA_SPECIALIST_SESSION"
+cwd="${LOLA_CWD:-$LOLA_SPECIALIST_CWD}"
+account="${LOLA_ACCOUNT:-$LOLA_DEFAULT_ACCOUNT}"
+
+# --- What the banner should say -------------------------------------------------------
+cap() { awk '{print toupper(substr($0,1,1)) substr($0,2)}'; }
+id="${model%-[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9]}"   # drop a -YYYYMMDD suffix
+if [[ "$id" =~ ^claude-([a-z]+)-([0-9]+)-([0-9]+)$ ]]; then
+  shown_re="$(echo "${BASH_REMATCH[1]}" | cap) ${BASH_REMATCH[2]}\\.${BASH_REMATCH[3]}"
+elif [[ "$id" =~ ^claude-([a-z]+)-([0-9]+)$ ]]; then
+  shown_re="$(echo "${BASH_REMATCH[1]}" | cap) ${BASH_REMATCH[2]}"
+elif [[ "$id" =~ ^[a-z]+$ ]]; then
+  shown_re="$(echo "$id" | cap) [0-9.]+"
+else
+  echo "ERROR: model '$model' is neither a model id like claude-opus-5-5 nor an alias like opus. Nothing started."
+  exit 2
+fi
+
+acct=$(lola_account "$account") || { echo "ERROR: no account named '$account' in LOLA_ACCOUNTS. Nothing started."; exit 2; }
+config_dir="${acct%%|*}"; plan="${acct#*|}"
+# A pane started from inside another Claude Code session inherits its session markers; a
+# child with them doesn't save its own transcript. Clear them before starting claude.
+clean="env -u CLAUDE_CODE_CHILD_SESSION -u CLAUDE_CODE_SESSION_ID -u CLAUDE_CODE_MESSAGING_SOCKET -u CLAUDE_CODE_MESSAGING_TOKEN -u CLAUDE_CODE_SESSION_ATTENDED"
+if [ "$config_dir" = "$HOME/.claude" ]; then
+  start="unset CLAUDE_CONFIG_DIR; $clean claude"
+else
+  start="$clean CLAUDE_CONFIG_DIR=$config_dir claude"
+fi
+
+# --- The cap, under a lock --------------------------------------------------------------
+CAP="${LOLA_CAP:-$LOLA_SPECIALIST_CAP}"
+lock="$LOLA_HOME/.spawn.lock"; mkdir -p "$LOLA_HOME"
+release() { rmdir "$lock" 2>/dev/null; }
+if [ -z "$CAP_CHECK" ] && [ -z "$DRY" ]; then
+  i=0
+  while ! mkdir "$lock" 2>/dev/null; do
+    if [ -n "$(find "$lock" -maxdepth 0 -mmin +2 2>/dev/null)" ]; then rmdir "$lock" 2>/dev/null; continue; fi
+    i=$((i+1)); [ "$i" -lt 60 ] || { echo "ERROR: another lola-spawn holds the lock ($lock). Nothing started."; exit 1; }
+    sleep 1
+  done
+  trap release EXIT
+fi
+alive_list() { # panes in the specialist session that count against this lead's cap
+  tmux list-panes -t "=$S" -s -F "#{pane_id}	#{window_name}	#{${LOLA_LABEL_OPTION}}" 2>/dev/null |
+    awk -F'\t' -v l="($lead)" '
+      index($3, "WATCH") == 1 || index($3, "HARVEST") == 1 { next }
+      index($3, l) { print $1, $2, $3 }'
+}
+if [ -n "$lead" ]; then
+  list=$(alive_list); alive=$(printf '%s' "$list" | grep -c .)
+  if [ -n "$CAP_CHECK" ]; then
+    echo "CAP: $alive alive specialists for $lead (cap $CAP). Nothing started."
+    [ -n "$list" ] && printf '%s\n' "$list"; exit 0
+  fi
+  if [ "$CAP" -gt 0 ] 2>/dev/null && [ "$alive" -ge "$CAP" ]; then
+    echo "STOP: $lead has $alive alive specialists (cap $CAP). Nothing started."
+    echo "  Read their receipts and close finished panes first. LOLA_CAP=0 overrides once."
+    printf '%s\n' "$list" | sed 's/^/  /'; exit 3
+  fi
+elif [ -n "$CAP_CHECK" ]; then
+  echo "CAP: no lead in the label '$label', so no cap applies. Nothing started."; exit 0
+fi
+
+if [ -n "$DRY" ]; then
+  echo "DRY: session $S · window '$window' · label '$label' · $model $effort · account $account${plan:+ ($plan)} · cwd $cwd"
+  echo "DRY: assignment: ${assignment:-(none)}"
+  exit 0
+fi
+
+# --- The window -----------------------------------------------------------------------
+if ! tmux has-session -t "=$S" 2>/dev/null; then
+  tmux new-session -d -s "$S" -n "$window" -c "$cwd"   # its first window is ours
+  lola_mark_session "$S"
+else
+  if ! lola_owns_session "$S"; then
+    echo "ERROR: a tmux session named '$S' exists, and Lola didn't create it. Nothing started: rename it, or set LOLA_SPECIALIST_SESSION."
+    exit 2
+  fi
+  if tmux list-windows -t "=$S" -F '#{window_name}' | grep -qx "$window"; then
+    window="$window-$(date +%H%M%S)-$$"   # never reuse a window: an idle-looking pane may be someone's
+  fi
+  tmux new-window -d -t "=$S:" -n "$window" -c "$cwd"
+fi
+lola_mark_window "$S" "$window"
+P=$(tmux list-panes -t "=$S:=$window" -F '#{pane_id}' | head -1)
+[ "$P" = "${TMUX_PANE:-none}" ] && P=""   # never start on top of the caller's own pane
+case "$P" in %[0-9]*) ;; *) echo "ERROR: could not create window '$window' in $S. Nothing started."; exit 1 ;; esac
+tmux set-option -p -t "$P" "${LOLA_LABEL_OPTION}" "$label"
+release   # the label is on the pane, so the next spawn counts it
+tmux set-option -w -t "=$S:=$window" pane-border-status top
+tmux set-option -w -t "=$S:=$window" pane-border-format " #{${LOLA_LABEL_OPTION}} "
+
+tmux send-keys -t "$P" -l "$start --name '$window' --model $model --effort $effort; exit"
+tmux send-keys -t "$P" Enter
+
+# --- Check the banner -----------------------------------------------------------------
+out=""
+for _ in $(seq 1 15); do
+  out=$(tmux capture-pane -t "$P" -p)
+  echo "$out" | grep -qE "$shown_re with" && echo "$out" | grep -q '^❯' && break
+  sleep 2
+done
+line=$(echo "$out" | grep -oE "[A-Za-z]+ [0-9.]+ with [a-z]+ effort( · [A-Za-z][A-Za-z ]*[A-Za-z])?" | head -1)
+want_re="^${shown_re} with ${effort} effort"
+if [ -n "$plan" ]; then want_re="${want_re} · ${plan}\$"; fi
+if ! [[ "$line" =~ $want_re ]]; then
+  want="${shown_re//\\./.} with $effort effort${plan:+ · $plan}"
+  # Close the pane again, so no stray claude is left running. It was created a moment ago
+  # by this run and carries our label; check that before closing it.
+  closed="left open"
+  if [ "$(tmux display -p -t "$P" "#{${LOLA_LABEL_OPTION}}" 2>/dev/null)" = "$label" ]; then
+    tmux kill-pane -t "$P" && closed="closed"
+  fi
+  echo "ERROR: banner says '${line:-nothing}', expected '$want'. Nothing sent; pane $P $closed."
+  exit 1
+fi
+echo "OK: $label · $line"
+[ -n "$assignment" ] && "$here/lola-send" "$P" "$assignment"
+echo "$P"

@@ -1,0 +1,15 @@
+{
+  "name": "my-ai-setup",
+  "description": "One person's Claude Code setup: the Lola lead/specialist method as a plugin, a role catalogue, generic skills, scripts, a status line and an installer.",
+  "owner": {
+    "name": "Mari Svennevik Notland",
+    "url": "https://github.com/Mariisno"
+  },
+  "plugins": [
+    {
+      "name": "lola",
+      "source": "./plugins/lola",
+      "description": "Lead and specialist sessions in tmux, a role catalogue, file inboxes, a human queue, and notes that keep every insight."
+    }
+  ]
+}

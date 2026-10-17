@@ -1,0 +1,4 @@
+ Which variant?
+ ❯ 1. Compact
+   2. Full
+ Enter to select · ↑/↓ to navigate · Esc to cancel
