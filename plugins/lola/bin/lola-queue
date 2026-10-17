@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# Part of Mari's AI Setup by Mari Svennevik Notland · https://github.com/Mariisno/maris-ai-setup · MIT License
+# lola-queue — add to, or read, the queue of what waits on the human (LOLA_QUEUE_FILE).
+#
+#   lola-queue add "<what it concerns>" "<what is needed, with the answer words>" "<where it is>" "<from>"
+#   lola-queue list              the open rows, numbered
+#   lola-queue done <n> "<answer>"   move open row n to the Done table with the answer
+#
+# The queue is a commons: specialists and leads write to it, often in the same minute. A
+# read-modify-write by hand loses rows when two sessions do it at once, so every change
+# here happens under the Lola lock (lola_lock queue) and lands with one atomic rename. The
+# row's date is today; a | in a field is written as \| so the table stays a table.
+# Exit 0 = done · 1 = the lock is held or the file is missing · 2 = usage.
+set -uo pipefail
+here="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../lib/lola-config.sh
+. "$here/../lib/lola-config.sh"
+
+usage() { sed -n '3,8p' "$0" >&2; exit 2; }
+Q="$LOLA_QUEUE_FILE"
+[ -f "$Q" ] || { echo "ERROR: no queue file at $Q. Run lola-init."; exit 1; }
+cell() { printf '%s' "$1" | tr '\n' ' ' | sed 's/|/\\|/g; s/^[[:space:]]*//; s/[[:space:]]*$//'; }
+
+# open_rows — the data rows of the «## Open» table, as "lineno<TAB>line".
+open_rows() {
+  awk '/^## /{open = ($0 ~ /^## Open/)} open && /^\|/ && !/^\|[-|]*\|$/ && !/^\| *Added/ {print NR "\t" $0}' "$Q"
+}
+
+case "${1:-}" in
+  add)
+    [ $# -eq 5 ] || usage
+    row="| $(date +%Y-%m-%d) | $(cell "$2") | $(cell "$3") | $(cell "$4") | $(cell "$5") |"
+    lola_lock queue || { echo "ERROR: the queue lock is held ($LOLA_HOME/.queue.lock). Nothing added."; exit 1; }
+    trap 'lola_unlock queue' EXIT
+    grep -q '^## Open' "$Q" || { echo "ERROR: $Q has no «## Open» table."; exit 1; }
+    # Insert after the last table line of the Open table (its header and rule count, so an
+    # empty table works too). Two passes over the file, one atomic rename.
+    tmp="$Q.tmp.$$"
+    # ENVIRON, not -v: awk reads backslashes in -v values as escapes, and the row holds \|.
+    ROW="$row" awk '
+      NR == FNR { if (/^## /) open = ($0 ~ /^## Open/); if (open && /^\|/) last = NR; next }
+      { print } FNR == last { print ENVIRON["ROW"] }' "$Q" "$Q" > "$tmp" || { rm -f "$tmp"; echo "ERROR: could not write $Q."; exit 1; }
+    grep -qF -- "$row" "$tmp" || { rm -f "$tmp"; echo "ERROR: the «## Open» table in $Q has no table lines to append to. Nothing added."; exit 1; }
+    mv "$tmp" "$Q"
+    echo "OK: added to the queue: ${row:0:100}"
+    ;;
+  list)
+    n=0
+    while IFS=$'\t' read -r _ line; do n=$((n+1)); printf '%2d %s\n' "$n" "$line"; done < <(open_rows)
+    [ "$n" -gt 0 ] || echo "The queue is empty."
+    ;;
+  done)
+    [ $# -eq 3 ] || usage
+    case "$2" in ''|*[!0-9]*) usage ;; esac
+    lola_lock queue || { echo "ERROR: the queue lock is held ($LOLA_HOME/.queue.lock). Nothing changed."; exit 1; }
+    trap 'lola_unlock queue' EXIT
+    ln=$(open_rows | sed -n "${2}p" | cut -f1)
+    [ -n "$ln" ] || { echo "ERROR: no open row $2 (lola-queue list shows them)."; exit 1; }
+    src=$(sed -n "${ln}p" "$Q")
+    added=$(printf '%s' "$src" | awk -F'|' '{gsub(/^ +| +$/, "", $2); print $2}')
+    what=$(printf '%s' "$src" | awk -F'|' '{gsub(/^ +| +$/, "", $3); print $3}')
+    done_row="| $added | $what | $(cell "$3") | $(date +%Y-%m-%d) |"
+    tmp="$Q.tmp.$$"
+    ROW="$done_row" awk -v ln="$ln" '
+      NR == FNR { if (/^## /) d = ($0 ~ /^## Done/); if (d && /^\|/) last = NR; next }
+      FNR == ln { next } { print } FNR == last { print ENVIRON["ROW"] }' "$Q" "$Q" > "$tmp" && mv "$tmp" "$Q" || { rm -f "$tmp"; echo "ERROR: could not write $Q."; exit 1; }
+    echo "OK: closed: $what"
+    ;;
+  *) usage ;;
+esac

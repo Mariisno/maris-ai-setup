@@ -131,6 +131,21 @@ row=$(FAKE_CAP="$root/test/fixtures/menu-permission.txt" PATH="$wr/bin:$PATH" HO
 row=$(FAKE_CAP="$root/test/fixtures/prompt-unsent-list.txt" PATH="$wr/bin:$PATH" HOME="$wr/home" LOLA_CONFIG=/dev/null LOLA_HOME="$wr/home/.lola" FAKE_LABEL="TORE · FRONTEND · Work (LOLA)" bash "$root/bin/lola-watch-report" --no-gh 2>/dev/null | grep -F '| `%5`')
 [[ "$row" == *"unsent message: «1. do this»"* ]] && ok "watch-report: an unsent message is flagged with its text" || bad "watch-report unsent row: $row"
 
+# lola-queue: rows land under «## Open» in order, a | in a field survives, done moves a row
+# to the Done table, and twenty concurrent adds lose nothing (the lock).
+qh="$tmp/qh"; mkdir -p "$qh/notes"; cp "$root/templates/waiting-on-you.md" "$qh/notes/Waiting on you.md"
+queue() { LOLA_CONFIG=/dev/null LOLA_HOME="$qh" LOLA_NOTES_DIR="$qh/notes" bash "$root/bin/lola-queue" "$@"; }
+queue add "Checkout copy" "Pick A or B" "notes/checkout.md" CILLA >/dev/null && ok "queue: add returns 0" || bad "queue: add failed"
+queue add "Pipe | in a field" "yes/no" "/tmp/x" TORE >/dev/null
+[ "$(queue list | grep -c .)" = 2 ] && ok "queue: list shows two open rows" || bad "queue list: $(queue list)"
+queue list | sed -n 1p | grep -q 'Checkout copy' && queue list | sed -n 2p | grep -qF 'Pipe \| in a field' && ok "queue: rows in order, | escaped" || bad "queue order/escape: $(queue list)"
+awk '/^## Open/{o=1} /^## Done/{o=0} o' "$qh/notes/Waiting on you.md" | grep -q 'Checkout copy' && ok "queue: the row is under ## Open" || bad "queue: row not under ## Open"
+queue done 1 "B" >/dev/null && [ "$(queue list | grep -c .)" = 1 ] && awk '/^## Done/{d=1} d' "$qh/notes/Waiting on you.md" | grep -q '| Checkout copy | B |' && ok "queue: done moves the row to ## Done with the answer" || bad "queue done: $(cat "$qh/notes/Waiting on you.md")"
+for i in $(seq 1 20); do queue add "Row $i" "ok" "/tmp/$i" T >/dev/null & done; wait
+[ "$(queue list | grep -c 'Row ')" = 20 ] && ok "queue: 20 concurrent adds, 20 rows (the lock holds)" || bad "queue concurrency: $(queue list | grep -c 'Row ') of 20 rows survived"
+[ -d "$qh/.queue.lock" ] && bad "queue: a lock was left behind" || ok "queue: no lock left behind"
+queue add "only" "three" "args" 2>/dev/null; [ $? -eq 2 ] && ok "queue: wrong arity is refused" || bad "queue: wrong arity accepted"
+
 # Role catalogue: every role and domain file carries a complete machine line, and
 # lola-spawn --role resolves label, model, effort and lead from it without touching tmux.
 for f in "$root"/roles/*/*.md; do

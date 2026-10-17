@@ -73,11 +73,12 @@ finished work can sit unseen until someone stumbles on it.
    *Loose threads* matters most: it is what tomorrow's lead reads, and the only thing that
    keeps a thread from dying with your pane.
 3. **The queue.** If something waits on the **human's answer** (a judgment, a choice, an
-   approval, something you stopped at a gate), add one table row under `## Open` in the queue
-   file, re-read from disk right before you write:
+   approval, something you stopped at a gate), add one row with the queue script, never by
+   editing the file (several sessions write to it in the same minute; the script takes a
+   lock and lands the row atomically):
 
    ```
-   | YYYY-MM-DD | <what it concerns> | <what is needed from them, with the answer words> | <full path or URL> | NAME |
+   bash "${CLAUDE_PLUGIN_ROOT}/bin/lola-queue" add "<what it concerns>" "<what is needed from them, with the answer words>" "<full path or URL>" NAME
    ```
 
    Only things that wait on their answer: their own tasks belong where they track work.

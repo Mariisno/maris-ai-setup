@@ -19,6 +19,7 @@ minutes; this file is the plugin's own reference.
 | `lola-send` | Send a message to a pane and verify it landed; long messages go as a file |
 | `lola-revive` | Rebuild the lead sessions after a restart and resume each lead's own conversation (`--resume` with the id the identity hook saved). Starts claude only in empty shells, and leaves alone any tmux session Lola didn't create |
 | `lola-session-start` | A SessionStart hook: reads the pane label, tells a lead or specialist who it is and which skill to load, and saves a lead's session id in `~/.lola/state/<NAME>.session` for `lola-revive` |
+| `lola-queue` | Add a row to the queue of what waits on the human, list the open rows, close one with its answer. Under a lock, with an atomic rename: the queue is written by many sessions |
 | `lola-watch-report` | The deterministic checks behind WATCH: finished or idle specialists, panes stuck in a menu or prompt, messages typed but never sent, empty shells, the queue, inboxes, hygiene jobs |
 | `lola-dig-guard` | A hook that warns a lead when it starts doing the digging itself |
 | `lola-init` | Create the config, inboxes, queue and folders. Idempotent |
@@ -50,7 +51,8 @@ documents each key:
   you set `LOLA_GITHUB_USER`.
 - **Files:** `lola-init` creates the config, the inboxes, the queue and empty folders, and
   never overwrites. `lola-send` writes long messages as files in the assignment folder.
-  `lola-spawn` holds a short lock file in `~/.lola` while it counts. `lola-session-start`
+  `lola-spawn` holds a short lock in `~/.lola` while it counts, and `lola-queue` one while
+  it writes a row (both are directories, taken over when older than two minutes). `lola-session-start`
   writes one small state file per lead (`~/.lola/state/<NAME>.session`: the session id).
   Nothing else writes files; `lola-watch-report` only reads.
 - **tmux:** `lola-spawn` and `lola-revive` create sessions and windows, label panes, and
