@@ -26,6 +26,21 @@ for f in "$root"/test/fixtures/prompt-*.txt; do
   if lola_shows_menu < "$f"; then bad "prompt: $(basename "$f") was seen as a menu"; else ok "prompt: $(basename "$f")"; fi
 done
 
+# lola_unsent_text: what stands typed but unsent in the composer. Fixture → expected text.
+unsent_case() { # <fixture> <expected>
+  got=$(lola_unsent_text < "$root/test/fixtures/$1")
+  if [ "$got" = "$2" ]; then ok "unsent: $1 → «${2:-nothing}»"; else bad "unsent: $1 gave «$got», wanted «$2»"; fi
+}
+unsent_case prompt-unsent-exit.txt "/exit"
+unsent_case prompt-unsent-list.txt "1. do this"
+unsent_case prompt-working.txt "next thing"
+unsent_case prompt-quoted-hints.txt ""
+unsent_case prompt-sent-numbered.txt ""
+for f in "$root"/test/fixtures/menu-*.txt; do unsent_case "$(basename "$f")" ""; done
+printf '✻ done\n────────\n❯ Try "fix the failing test"\n────────\n' > "$root/test/fixtures/.placeholder.tmp"
+[ -z "$(lola_unsent_text < "$root/test/fixtures/.placeholder.tmp")" ] && ok "unsent: the dim placeholder is not a message" || bad "unsent: placeholder counted as a message"
+rm -f "$root/test/fixtures/.placeholder.tmp"
+
 for s in zsh -zsh bash -bash fish -fish sh -sh login; do
   if lola_is_shell "$s"; then ok "shell: $s"; else bad "shell: $s"; fi
 done

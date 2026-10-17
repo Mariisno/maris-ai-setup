@@ -29,8 +29,18 @@ trap 'rm -rf "${TMPD}"' EXIT
 
 tmux list-panes -a -F "#{pane_id}	#{session_name}	#{window_name}	#{${LOLA_LABEL_OPTION}}	#{pane_current_command}	#{window_activity}	#{pane_pid}" \
   > "${TMPD}/panes.tsv" 2>/dev/null
+# Two captures per pane. The last 40 lines feed the python below («done», «esc to
+# interrupt»). The visible screen alone, as lola-send reads it, answers the two states that
+# stall a specialist for hours: a menu or prompt nobody answers (lola_shows_menu), and a
+# message typed but never sent (lola_unsent_text). Scrollback can hold stale renders of an
+# earlier composer, so those two are never read from it.
+: > "${TMPD}/menus.txt"; : > "${TMPD}/unsent.tsv"
 while IFS=$'\t' read -r pid _rest; do
   tmux capture-pane -p -t "${pid}" -S -40 2>/dev/null > "${TMPD}/cap${pid}.txt"
+  tmux capture-pane -p -t "${pid}" 2>/dev/null > "${TMPD}/scr${pid}.txt"
+  lola_shows_menu < "${TMPD}/scr${pid}.txt" && printf '%s\n' "${pid}" >> "${TMPD}/menus.txt"
+  u=$(lola_unsent_text < "${TMPD}/scr${pid}.txt")
+  [ -n "${u}" ] && printf '%s\t%s\n' "${pid}" "${u}" >> "${TMPD}/unsent.tsv"
 done < "${TMPD}/panes.tsv"
 
 if [ "${NO_GH}" = 0 ]; then
@@ -89,6 +99,12 @@ for line in open(f"{T}/panes.tsv"):
     cap = open(f, errors="replace").read() if os.path.exists(f) else ""
     panes.append(dict(pid=pid, sess=sess, win=win, label=label, cmd=cmd, wact=int(wact or 0), cap=cap))
 
+MENUS = set(l.strip() for l in open(f"{T}/menus.txt") if l.strip())
+UNSENT = {}
+for line in open(f"{T}/unsent.tsv"):
+    pid, _, text = line.rstrip("\n").partition("\t")
+    if pid: UNSENT[pid] = text
+
 reg = {}
 for acct in ACCOUNTS:
     name, cdir = acct[0], (acct[1] if len(acct) > 1 else "")
@@ -129,13 +145,21 @@ for p in panes:
         flags.append(f"empty shell in {SPEC} ({idle:.0f} min quiet)")
     if is_claude and not lead and p["sess"] == SPEC:
         tail = last_lines(p["cap"])
-        composer = [l for l in tail if l.lstrip().startswith("❯")]
-        if composer and composer[-1].strip() == "❯ /exit":
+        working = "esc to interrupt" in p["cap"]
+        since_min = (now - r["since"]) / 60 if r and r["since"] else 0
+        unsent = UNSENT.get(p["pid"], "")
+        if p["pid"] in MENUS:
+            # Only a human (or the lead, for a read-only plan) may answer it. WATCH routes it.
+            flags.append(f"in a menu or prompt ({since_min:.0f} min): route to its lead")
+        elif unsent == "/exit":
             flags.append("finished: `/exit` stands unsent")
+        elif unsent and not working:
+            # Typed, never sent: the one thing WATCH may fix itself (Enter, once).
+            flags.append(f"unsent message: «{unsent[:40]}»")
         elif any(l.strip().lower() in ("done", "done.") for l in tail):
             flags.append("finished: last line «done»")
-        if r and r["status"] == "idle" and (now - r["since"]) > 30 * 60:
-            flags.append(f"idle {(now - r['since']) / 60:.0f} min (> 30)")
+        if r and r["status"] == "idle" and since_min > 30:
+            flags.append(f"idle {since_min:.0f} min (> 30)")
     if flags: flag()
     P(f"| `{p['pid']}` | {p['sess']}:{p['win']} | {p['label'] or '—'} | {running} | "
       f"{r['acct'] if r else '—'} | {status or '—'} | {' · '.join(flags) or '✓'} |")

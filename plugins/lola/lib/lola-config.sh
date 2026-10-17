@@ -139,6 +139,23 @@ lola_shows_menu() {
     }'
 }
 
+# lola_unsent_text — reads a pane capture on stdin; prints what stands typed but unsent in
+# the composer (the «❯» line right under a ─ rule), or nothing. «/exit» counts: a specialist
+# that typed /exit and never pressed Enter is finished and still alive. The dim placeholder
+# («Try "…"») is not a message. A pane in a menu has no composer, so it prints nothing.
+lola_unsent_text() {
+  awk '
+    { l[NR] = $0 }
+    END {
+      for (i = NR; i > 1; i--) if (l[i] ~ /^❯( |$)/ && l[i-1] ~ /^──────/) {
+        t = l[i]; sub(/^❯[ \t]*/, "", t); sub(/[ \t]+$/, "", t)
+        if (t ~ /^Try "/) t = ""
+        if (t != "") print t
+        exit
+      }
+    }'
+}
+
 # lola_export — export the config for child processes (python helpers, hooks).
 lola_export() {
   export LOLA_HOME LOLA_CONFIG LOLA_ROOT LOLA_USER_NAME LOLA_LANGUAGE LOLA_LEAD_MODEL \
