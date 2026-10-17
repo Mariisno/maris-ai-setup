@@ -90,7 +90,9 @@ render() { # fill the placeholders the config knows; leave the rest for the pers
     )
   fi
   # ENVIRON, not -v: awk would read backslashes in the values as escapes
-  R_NAME="$name" R_LANG="$lang" R_NOTES="${notes/#$HOME/~}" R_LEAD="${lead:-LOLA}" awk '
+  # "~" from a variable: bash 4.3+ tilde-expands a literal ~ in the replacement back to $HOME.
+  local tilde="~"
+  R_NAME="$name" R_LANG="$lang" R_NOTES="${notes/#"$HOME"/$tilde}" R_LEAD="${lead:-LOLA}" awk '
     function sub_all(s, key, val,   i, out) {
       out = ""
       while ((i = index(s, key)) > 0) { out = out substr(s, 1, i - 1) val; s = substr(s, i + length(key)) }
