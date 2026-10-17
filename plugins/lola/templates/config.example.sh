@@ -77,6 +77,9 @@ LOLA_DIG_GUARD_EVERY=4
 LOLA_SEND_MAX_CHARS=600
 # Inbox files larger than this are flagged by the watch report.
 LOLA_INBOX_WARN_KB=60
+# A specialist idle this many minutes without a receipt in its lead's inbox is flagged by
+# the watch report (WATCH then asks it once to write the receipt). 0 = never.
+LOLA_RECEIPT_AFTER_MIN=10
 # GitHub user whose open pull requests the watch report lists. Empty = skip.
 LOLA_GITHUB_USER=""
 

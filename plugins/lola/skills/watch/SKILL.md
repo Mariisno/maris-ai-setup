@@ -47,6 +47,11 @@ Configuration comes from `~/.lola/config.sh` (see the `setup` skill).
      that text, no menu is open and the pane isn't working (no `esc to interrupt`), press
      `tmux send-keys -t <pane> Enter` **once**. Never type anything else into it, and never
      do this in a lead's pane: there the unsent text is the human's own.
+   - **A specialist idle without a receipt** (`idle N min, no receipt from NAME in LEAD.md`):
+     it stopped, and its lead doesn't know. Send it one line through `lola-send`, once per
+     pane: `WATCH: you have been idle N min and <LEAD>.md has no receipt from you. Write the
+     three-line receipt now (what · result · needs), then /exit.` Note the pane id in your
+     round; a pane you already asked is reported to the lead instead, never asked twice.
 3. **A pane in a menu or prompt** (`in a menu or prompt (N min)`): never answer it. Put the
    pane id, how long it has stood there, and what the menu asks (first lines of the capture)
    in that lead's message in the same round. The lead answers a read-only plan approval

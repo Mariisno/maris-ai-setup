@@ -121,6 +121,25 @@ for acct in ACCOUNTS:
 def last_lines(cap, n=12):
     return [l for l in cap.splitlines() if l.strip()][-n:]
 
+RECEIPT_MIN = float(E.get("LOLA_RECEIPT_AFTER_MIN") or 0)
+def receipt_from(name, lead):
+    """True when <lead>'s inbox holds a receipt line from NAME dated today or yesterday
+    (the format the specialist skill prescribes: 'NAME YYYY-MM-DD: …' or 'NAME DD.MM …')."""
+    f = os.path.join(E["LOLA_INBOX_DIR"], f"{lead}.md")
+    if not os.path.exists(f): return False
+    for l in open(f, errors="replace"):
+        if not l.startswith(name + " "): continue
+        d = pdate(l[len(name):])
+        if d and (today - d).days <= 1: return True
+    return False
+
+def specialist_parts(label):
+    """('NAME', 'LEAD') from 'NAME · ROLE · Domain (LEAD)' or 'NAME · role (LEAD)'; else None."""
+    m = re.search(r"\(([^()]+)\)\s*$", label or "")
+    name = (label or "").split("·")[0].strip()
+    if not m or not name or name in ("WATCH", "HARVEST"): return None
+    return name, m.group(1).strip()
+
 P("## Panes")
 P("")
 P("| Pane | Where | Label | Running | Account | Status | Flags |")
@@ -160,6 +179,12 @@ for p in panes:
             flags.append("finished: last line «done»")
         if r and r["status"] == "idle" and since_min > 30:
             flags.append(f"idle {since_min:.0f} min (> 30)")
+        # Idle without a receipt: the specialist stopped, but nobody was told. The cap counts
+        # it until WATCH's close rule, and its lead waits on a Monitor that never fires.
+        sp = specialist_parts(p["label"])
+        if sp and r and r["status"] == "idle" and RECEIPT_MIN > 0 and since_min >= RECEIPT_MIN \
+                and not working and p["pid"] not in MENUS and not receipt_from(*sp):
+            flags.append(f"idle {since_min:.0f} min, no receipt from {sp[0]} in {sp[1]}.md")
     if flags: flag()
     P(f"| `{p['pid']}` | {p['sess']}:{p['win']} | {p['label'] or '—'} | {running} | "
       f"{r['acct'] if r else '—'} | {status or '—'} | {' · '.join(flags) or '✓'} |")

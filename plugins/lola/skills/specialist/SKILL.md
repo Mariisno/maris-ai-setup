@@ -59,7 +59,9 @@ finished work can sit unseen until someone stumbles on it.
    ```
 
    The full report goes in the notes, not in the inbox. If a later check changes what you
-   wrote, append one correcting line; don't hold the receipt back for it.
+   wrote, append one correcting line; don't hold the receipt back for it. `NAME` is the first
+   word of your pane label, exactly: the watch matches receipts to panes by it, and a
+   specialist idle without one is asked for it.
 2. **Session log.** Append a section to today's file in the session log folder
    (`<session log dir>/YYYY-MM-DD.md`):
 
