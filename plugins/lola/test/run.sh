@@ -35,7 +35,8 @@ done
 if grep -qE '\("zsh"|"-zsh", "fish"' "$root/bin/lola-watch-report"; then bad "watch-report keeps its own shell list"; else ok "watch-report uses LOLA_SHELLS"; fi
 
 # LOLA_LABEL_OPTION: which tmux option holds a pane's identity. @label by default.
-tmp="$(mktemp -d -t lola-test)"; trap 'rm -rf "$tmp"' EXIT
+# A template with X's: GNU mktemp refuses `-t lola-test`, and the tests then wrote to /.
+tmp="$(mktemp -d "${TMPDIR:-/tmp}/lola-test.XXXXXX")"; trap 'rm -rf "$tmp"' EXIT
 opt() { ( LOLA_CONFIG="$1" . "$root/lib/lola-config.sh" 2>/dev/null; printf '%s' "$LOLA_LABEL_OPTION" ); }
 [ "$(opt /dev/null)" = "@label" ] && ok "label option: @label by default" || bad "label option default: $(opt /dev/null)"
 printf 'LOLA_LABEL_OPTION="@navn"\n' > "$tmp/navn.sh"
