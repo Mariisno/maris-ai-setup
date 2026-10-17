@@ -19,7 +19,7 @@ minutes; this file is the plugin's own reference.
 | `lola-send` | Send a message to a pane and verify it landed; long messages go as a file |
 | `lola-revive` | Rebuild the lead sessions after a restart and resume each lead's own conversation (`--resume` with the id the identity hook saved). Starts claude only in empty shells, and leaves alone any tmux session Lola didn't create |
 | `lola-session-start` | A SessionStart hook: reads the pane label, tells a lead or specialist who it is and which skill to load, and saves a lead's session id in `~/.lola/state/<NAME>.session` for `lola-revive` |
-| `lola-watch-report` | The deterministic checks behind WATCH |
+| `lola-watch-report` | The deterministic checks behind WATCH: finished or idle specialists, panes stuck in a menu or prompt, messages typed but never sent, empty shells, the queue, inboxes, hygiene jobs |
 | `lola-dig-guard` | A hook that warns a lead when it starts doing the digging itself |
 | `lola-init` | Create the config, inboxes, queue and folders. Idempotent |
 
@@ -59,7 +59,8 @@ documents each key:
   just made when the banner check fails. Closing finished specialists is WATCH's job, and
   only inside the specialist session.
 - `lola-send` types only into panes in Lola's specialist session, and refuses a pane that
-  shows a menu or a permission prompt.
+  shows a menu or a permission prompt. WATCH never answers a menu; the one key it may press is
+  Enter on a message that stands typed but unsent in a specialist pane.
 - HARVEST reads your own session transcripts on your own machine to find what you decided.
   It writes only to your notes folder.
 

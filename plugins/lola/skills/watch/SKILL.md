@@ -41,17 +41,30 @@ Configuration comes from `~/.lola/config.sh` (see the `setup` skill).
      close, report it.
    - **An empty shell in the specialist session:** `pane_current_command` is a shell and the
      pane has no child processes (`pgrep -P <pane_pid>` is empty) → close it.
+   - **An unsent message in a specialist pane** (the report says `unsent message: «…»` or
+     `/exit stands unsent`): a message typed into the composer and never sent stalls that
+     specialist for hours. Capture the pane in the same moment; when the composer still holds
+     that text, no menu is open and the pane isn't working (no `esc to interrupt`), press
+     `tmux send-keys -t <pane> Enter` **once**. Never type anything else into it, and never
+     do this in a lead's pane: there the unsent text is the human's own.
+3. **A pane in a menu or prompt** (`in a menu or prompt (N min)`): never answer it. Put the
+   pane id, how long it has stood there, and what the menu asks (first lines of the capture)
+   in that lead's message in the same round. The lead answers a read-only plan approval
+   itself; everything else goes to the human.
    - **Stamp** the rows you actually ran in the hygiene table, if there is one.
-3. **Route the rest** as one combined message per lead, and only when there are findings:
+4. **Route the rest** as one combined message per lead, and only when there are findings:
    append to that lead's inbox in the inbox folder, prefixed `WATCH <date> <time>:`. Route by
-   the domains in `LOLA_LEADS`; what concerns how the setup itself works goes to the first lead.
-4. No findings: write one line to the first lead's inbox: `WATCH <time>: clean`.
+   the lead named in the pane label (`… (LEAD)`), else by the domains in `LOLA_LEADS`; what
+   concerns how the setup itself works goes to the first lead.
+5. No findings: write one line to the first lead's inbox: `WATCH <time>: clean`.
 
 ## Never
 
 - Close, type into or interrupt panes **outside the specialist session**. Leads, and any
   session the human works in, are untouchable.
-- Close a pane that is working, or that shows a menu or a question.
+- Close a pane that is working, or that shows a menu or a question. Answer a menu.
+- Type anything into a pane. The one key WATCH presses is Enter on an unsent message in a
+  specialist pane, once, after a capture in the same moment.
 - Delete files, send anything off the machine, or change settings, instructions, skills or
   memory.
 - Write in the queue. Leads do that.
