@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Part of Mari's AI Setup by Mari Svennevik Notland · https://github.com/Mariisno/maris-ai-setup · MIT License
 # install.sh — link this repository into a Claude Code config folder.
 #
 #   ./install.sh [--dry-run] [--target DIR]
@@ -14,7 +15,7 @@
 #      settings.json snippet for the status line. It never edits settings.json.
 #
 # <target> is $CLAUDE_CONFIG_DIR if set, else ~/.claude. Anything it would replace is moved
-# to <target>/backup-my-ai-setup-<stamp>/ first. --dry-run prints every step and changes nothing.
+# to <target>/backup-maris-ai-setup-<stamp>/ first. --dry-run prints every step and changes nothing.
 set -euo pipefail
 repo="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 target="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"; dry=""
@@ -22,12 +23,12 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) dry=1; shift ;;
     --target) target="${2:?--target needs a directory}"; shift 2 ;;
-    -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
+    -h|--help) awk 'NR == 1 { next } /^#/ { sub(/^# ?/, ""); print; next } { exit }' "$0"; exit 0 ;;
     *) echo "unknown option: $1"; exit 2 ;;
   esac
 done
 target="${target%/}"
-stamp="$(date +%Y%m%d-%H%M%S)"; backup="$target/backup-my-ai-setup-$stamp"
+stamp="$(date +%Y%m%d-%H%M%S)"; backup="$target/backup-maris-ai-setup-$stamp"
 run() { if [ -n "$dry" ]; then echo "  DRY: $*"; else "$@"; fi; }
 say() { printf '%s\n' "$*"; }
 
@@ -52,7 +53,8 @@ link() { # <source> <dest>
   fi
 }
 
-say "my-ai-setup → $target${dry:+  (dry run: nothing is changed)}"
+say "Mari's AI Setup by Mari Svennevik Notland · github.com/Mariisno/maris-ai-setup"
+say "→ $target${dry:+  (dry run: nothing is changed)}"
 [ -n "$dry" ] || mkdir -p "$target"
 
 say; say "1 · config"
@@ -105,7 +107,7 @@ fi
 
 say; say "6 · the Lola plugin (run these yourself; they write to your plugin settings):"
 say "     claude plugin marketplace add $repo"
-say "     claude plugin install lola@my-ai-setup"
+say "     claude plugin install lola@maris-ai-setup"
 say "   Then, in a Claude Code session: /lola:setup init"
 
 say; say "7 · settings.json (merge by hand; this script never edits it):"

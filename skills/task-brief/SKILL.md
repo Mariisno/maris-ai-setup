@@ -1,6 +1,10 @@
 ---
 name: task-brief
 description: Use when a task is to be formulated for the best result — how the prompt is built, which context must be grounded, which kind of task this is — and when an answer didn't hold and you must find out whether it lacked knowledge, effort or context. Also owns the paste-ready prompt rule - every prompt handed to the person comes with a model and effort recommendation. Triggers - "how should I prompt this", "help me write the prompt", "the answer was poor", "why was it so bad", "what context does it need", before every paste-ready prompt, «hvordan bør jeg prompte dette», «svaret ble dårlig».
+license: MIT
+metadata:
+  author: Mari Svennevik Notland
+  source: https://github.com/Mariisno/maris-ai-setup
 ---
 
 # Task brief — how to formulate the task

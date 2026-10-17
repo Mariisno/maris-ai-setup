@@ -1,6 +1,10 @@
 ---
 name: test-round
 description: Use when the person needs to test something themselves and wants to know exactly what to click — after an agent run finishes, after a prototype change is uploaded, before a design is called done, or before showing something to a team. Also for a repeatable test list for a screen or module. Triggers - "what should I test", "give me a test round", "it's done, what do I check", "make me a checklist", «hva skal jeg teste», «gi meg en testrunde».
+license: MIT
+metadata:
+  author: Mari Svennevik Notland
+  source: https://github.com/Mariisno/maris-ai-setup
 ---
 
 # Test round — what the person actually clicks

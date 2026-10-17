@@ -2,6 +2,10 @@
 name: notes-lookup
 argument-hint: <topic>
 description: Use when the person wants to know what the notes already say about a topic, without it being a formal task — an explicit lookup in the notes folder (a Markdown folder or an Obsidian vault). Searches broadly, synthesises with sources and links, and says honestly when nothing is there. Triggers - "/notes-lookup <topic>", "what do we know about …", "did we note anything about …", "look up …", "check the notes", «hva vet vi om», «hva står i vaulten om», «slå opp».
+license: MIT
+metadata:
+  author: Mari Svennevik Notland
+  source: https://github.com/Mariisno/maris-ai-setup
 ---
 
 # Notes lookup — fetch what we already know

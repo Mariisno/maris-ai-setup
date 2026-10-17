@@ -1,6 +1,10 @@
 ---
 name: testing
 description: Use when something is to be tested or verified in design or prototype work — to make a test round, to judge a test report, or to decide which test layer is needed before something is called done. Triggers - "make a test", "can you test", "the test report came", "is this tested?", "verify this", a build round nearing done, «lag en test», «er dette testet».
+license: MIT
+metadata:
+  author: Mari Svennevik Notland
+  source: https://github.com/Mariisno/maris-ai-setup
 ---
 
 # Testing — three layers, and none of them counts for another

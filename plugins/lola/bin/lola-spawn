@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Part of Mari's AI Setup by Mari Svennevik Notland · https://github.com/Mariisno/maris-ai-setup · MIT License
 # lola-spawn — start a specialist in one move.
 #
 #   lola-spawn --role <group/role> --domain <domain> [--name NAME] [--window W]

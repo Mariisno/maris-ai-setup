@@ -1,6 +1,10 @@
 ---
 name: tired-mode
 description: Use when the person is tired — they say so ("I'm tired", "long day", «jeg er trøtt», «sliten»), or it shows in short or confused replies, late in the evening. Changes how the session works - shorter answers, one step at a time, extra care with anything that cannot be undone. Triggers - "/tired-mode", "/trott-modus", "I'm tired", "I'm exhausted", «nå er jeg sliten».
+license: MIT
+metadata:
+  author: Mari Svennevik Notland
+  source: https://github.com/Mariisno/maris-ai-setup
 ---
 
 # Tired mode

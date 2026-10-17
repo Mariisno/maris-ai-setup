@@ -1,13 +1,21 @@
-# my-ai-setup
+# Mari's AI Setup
 
-**One person's Claude Code setup, made portable.** The lead/specialist method (Lola) as a
-plugin, a role catalogue, ten generic skills, a handful of scripts, a status line, and an
-installer that links it all into `~/.claude` on any machine.
+**My Claude Code setup, made portable.** The lead/specialist method (Lola) as a plugin, a
+role catalogue, ten generic skills, a handful of scripts, a status line, and an installer
+that links it all into `~/.claude` on any machine.
 
-> **Kort på norsk:** dette er oppsettet mitt for Claude Code, gjort generisk så jeg kan ha
-> det på flere maskiner. Én konfigfil (`~/.lola/config.sh`) holder alt som er personlig:
-> navn, språk, ledere, kontoer og hvor notatene bor. Resten er likt overalt. Installer med
-> `./install.sh`, og les videre på engelsk for detaljene.
+Hi, I'm Mari Svennevik Notland ([@Mariisno](https://github.com/Mariisno)), a UX designer.
+I usually have several Claude Code sessions going at once, and without some order it got
+messy fast: who is doing what, which answer is waiting on me, where did that decision end
+up. So I settled on a way of working where I talk to one session, the lead, and it hands
+the work to named specialists and keeps track of them. This repository is that setup,
+with everything personal moved into one config file, so it runs the same on any machine.
+Take what's useful to you.
+
+> **Kort på norsk:** dette er Claude Code-oppsettet mitt, gjort generisk så jeg kan ha det
+> på flere maskiner, og så andre kan bruke det. Én konfigfil (`~/.lola/config.sh`) holder
+> alt som er personlig: navn, språk, ledere, kontoer og hvor notatene bor. Resten er likt
+> overalt. Installer med `./install.sh`, og les videre på engelsk for detaljene.
 
 ```mermaid
 flowchart LR
@@ -60,8 +68,8 @@ Python 3 · Claude Code 2.1.284 or later.
 1. **Clone and look before you leap:**
 
    ```sh
-   git clone https://github.com/Mariisno/my-ai-setup ~/my-ai-setup
-   cd ~/my-ai-setup
+   git clone https://github.com/Mariisno/maris-ai-setup ~/maris-ai-setup
+   cd ~/maris-ai-setup
    ./install.sh --dry-run
    ```
 
@@ -77,8 +85,8 @@ Python 3 · Claude Code 2.1.284 or later.
    you run them yourself):
 
    ```sh
-   claude plugin marketplace add ~/my-ai-setup
-   claude plugin install lola@my-ai-setup
+   claude plugin marketplace add ~/maris-ai-setup
+   claude plugin install lola@maris-ai-setup
    ```
 
 4. **Tell it who you are.** Open `~/.lola/config.sh` and set your name, your language,
@@ -161,6 +169,7 @@ trigger lines carry Norwegian phrases too, so they fire in either.
   only if you set `LOLA_GITHUB_USER`.
 - `install.sh` creates symlinks, the config and (optionally) `CLAUDE.md`. It never edits
   `settings.json`, never overwrites without a backup, and `--dry-run` shows every step.
+- No telemetry. Nothing reports usage, installs or errors anywhere.
 - The plugin's scripts mark every tmux session they create and touch nothing without the
   mark. Details in [`plugins/lola/README.md`](plugins/lola/README.md).
 
@@ -175,4 +184,9 @@ catalogue's machine lines, and `lola-spawn --role` resolution (dry run).
 
 ## License
 
-MIT. See [LICENSE](LICENSE). Made by Mari Svennevik Notland.
+MIT. See [LICENSE](LICENSE). Made by Mari Svennevik Notland
+([@Mariisno](https://github.com/Mariisno)).
+
+The installer prints where the setup comes from, every installed script starts with a
+one-line credit, and each skill names its author in its frontmatter. If you copy or build
+on any of it, keep that line and the copyright notice, as the license asks.

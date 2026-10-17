@@ -1,6 +1,10 @@
 ---
 name: harvest
 description: Use when a session has been given the HARVEST role in a Lola setup, or when a scheduled "HARVEST round" or "HARVEST week" prompt fires — the daily sweep that makes sure every insight from conversations with leads is saved, linked and analysed in the notes.
+license: MIT
+metadata:
+  author: Mari Svennevik Notland
+  source: https://github.com/Mariisno/maris-ai-setup
 ---
 
 # HARVEST — insight harvest across all leads

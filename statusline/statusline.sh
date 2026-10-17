@@ -1,4 +1,5 @@
 #!/bin/bash
+# Part of Mari's AI Setup by Mari Svennevik Notland · https://github.com/Mariisno/maris-ai-setup · MIT License
 # A Claude Code status line 🌸
 # Line 1: greeting · project · git branch · model + effort · account tag · cat
 # Line 2: meters for context, the 5-hour limit and the weekly limit

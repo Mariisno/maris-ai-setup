@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Part of Mari's AI Setup by Mari Svennevik Notland · https://github.com/Mariisno/maris-ai-setup · MIT License
 # quota.sh — the remaining quota of every configured Claude account, one line each.
 # Reads the snapshot the status line writes per account (<LOLA_USAGE_DIR>/snapshot-<account>.json).
 # A number is as fresh as the last status-line render on that account, so its age is shown.

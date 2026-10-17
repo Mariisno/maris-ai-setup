@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Part of Mari's AI Setup by Mari Svennevik Notland · https://github.com/Mariisno/maris-ai-setup · MIT License
 # memory-crossref.sh — see across ALL project-scoped memories.
 #
 # Why: Claude Code loads only the memories in <config dir>/projects/<cwd-slug>/memory/.

@@ -2,6 +2,10 @@
 name: sidequest
 argument-hint: <what came up>
 description: Use when a sidequest turns up in the middle of a working session — a new problem, an idea, a clean-up that is NOT today's main task. Captures it without hijacking the thread - logs it in the notes, proposes its own session with a recommended model and effort. Triggers - "/sidequest <thing>", "by the way we should also…", "we need to look at that some time", a finding outside scope, the person starting on something new mid-task, «btw vi burde også», «dette må vi se på en gang».
+license: MIT
+metadata:
+  author: Mari Svennevik Notland
+  source: https://github.com/Mariisno/maris-ai-setup
 ---
 
 # Sidequest — capture without hijacking the thread

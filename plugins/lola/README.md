@@ -2,7 +2,7 @@
 
 The lead/specialist method for running several Claude Code sessions in parallel, packaged
 as a Claude Code plugin. The repository this folder lives in,
-[my-ai-setup](../../README.md), explains the whole setup and how to install it in five
+[Mari's AI Setup](../../README.md), explains the whole setup and how to install it in five
 minutes; this file is the plugin's own reference.
 
 ## What's in it

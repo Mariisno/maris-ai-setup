@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Part of Mari's AI Setup by Mari Svennevik Notland · https://github.com/Mariisno/maris-ai-setup · MIT License
 # lola-watch-report — deterministic hygiene checks across all leads, for the WATCH role.
 # Prints a short Markdown report. Reads only: tmux, Claude Code's session registries, the
 # queue, inboxes, the optional hygiene and method-log tables, and `gh` (read). Writes nothing.

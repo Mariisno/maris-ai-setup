@@ -1,6 +1,10 @@
 ---
 name: watch
 description: Use when a session has been given the WATCH role in a Lola setup, or when a scheduled "WATCH round" prompt fires — the hygiene watch over all leads that closes finished specialist panes and routes findings.
+license: MIT
+metadata:
+  author: Mari Svennevik Notland
+  source: https://github.com/Mariisno/maris-ai-setup
 ---
 
 # WATCH — the hygiene watch over all leads
