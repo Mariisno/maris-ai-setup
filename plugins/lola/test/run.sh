@@ -178,6 +178,15 @@ if HOME="$nh" CLAUDE_CONFIG_DIR='' bash "$root/../../install.sh" >"$tmp/install.
 else
   bad "install.sh: failed in an empty HOME ($(tail -1 "$tmp/install.log"))"
 fi
+# --uninstall removes our links and nothing else; a foreign link in skills/ survives.
+ln -s /nonexistent/other-skill "$nh/.claude/skills/other-skill"
+HOME="$nh" CLAUDE_CONFIG_DIR= bash "$root/../../install.sh" --uninstall --dry-run >"$tmp/un.log" 2>&1
+[ -L "$nh/.claude/statusline.sh" ] && ok "install.sh --uninstall --dry-run: changes nothing" || bad "install.sh --uninstall --dry-run removed a link"
+HOME="$nh" CLAUDE_CONFIG_DIR= bash "$root/../../install.sh" --uninstall >"$tmp/un.log" 2>&1
+if [ ! -e "$nh/.claude/statusline.sh" ] && [ ! -e "$nh/.claude/skills/task-brief" ] && [ ! -e "$nh/.claude/scripts/quota.sh" ]; then ok "install.sh --uninstall: our links are gone"; else bad "install.sh --uninstall left links: $(ls "$nh/.claude/skills" "$nh/.claude/scripts")"; fi
+[ -L "$nh/.claude/skills/other-skill" ] && ok "install.sh --uninstall: a foreign link is kept" || bad "install.sh --uninstall removed a foreign link"
+[ -f "$nh/.claude/CLAUDE.md" ] && [ -f "$nh/.lola/config.sh" ] && ok "install.sh --uninstall: CLAUDE.md and ~/.lola are kept" || bad "install.sh --uninstall touched CLAUDE.md or ~/.lola"
+grep -q 'claude plugin uninstall lola@maris-ai-setup' "$tmp/un.log" && ok "install.sh --uninstall: prints the plugin removal" || bad "install.sh --uninstall: no plugin removal printed"
 
 echo; echo "$((n - fail))/$n passed"
 [ "$fail" -eq 0 ]
