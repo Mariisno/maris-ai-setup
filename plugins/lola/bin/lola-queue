@@ -63,7 +63,11 @@ case "${1:-}" in
     tmp="$Q.tmp.$$"
     ROW="$done_row" awk -v ln="$ln" '
       NR == FNR { if (/^## /) d = ($0 ~ /^## Done/); if (d && /^\|/) last = NR; next }
-      FNR == ln { next } { print } FNR == last { print ENVIRON["ROW"] }' "$Q" "$Q" > "$tmp" && mv "$tmp" "$Q" || { rm -f "$tmp"; echo "ERROR: could not write $Q."; exit 1; }
+      FNR == ln { next } { print } FNR == last { print ENVIRON["ROW"] }' "$Q" "$Q" > "$tmp" || { rm -f "$tmp"; echo "ERROR: could not write $Q."; exit 1; }
+    # As in add: the row must stand in the new file before it replaces the old one. With no
+    # «## Done» table the row has nowhere to land, and the open row must not vanish.
+    grep -qF -- "$done_row" "$tmp" || { rm -f "$tmp"; echo "ERROR: $Q has no «## Done» table to move the row to. Nothing changed."; exit 1; }
+    mv "$tmp" "$Q"
     echo "OK: closed: $what"
     ;;
   *) usage ;;
