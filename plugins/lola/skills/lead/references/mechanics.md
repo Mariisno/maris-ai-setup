@@ -61,9 +61,12 @@ Hard-won details. Each one cost real time, usually a lost message or a nearly cl
 
 ## After a restart
 
-- `lola-revive` rebuilds lead sessions and resumes leads with `claude --continue`, which picks
-  the most recent conversation in the pane's directory. Several sessions sharing a directory
-  can make it pick the wrong one: use `claude --resume <id>` when you have the id.
+- `lola-revive` rebuilds lead sessions and resumes each lead with `claude --resume <id>`: the
+  id the SessionStart hook saved in `~/.lola/state/<NAME>.session`. Never `--continue`, which
+  takes whatever conversation was last in the directory. No state file → a fresh lead, told
+  who it is by the same hook.
+- **Identity comes from the pane label.** The hook reads `#{@label}` (or `LOLA_LABEL_OPTION`)
+  on every start and resume. A lead pane without a label is a stranger: set the label first.
 - Check that no orphaned process still holds a lead's old transcript (`lsof <transcript>`):
   orphans can come back to life and run monitors twice.
 - A lead isn't back until its first answer shows it knows its role. Verify; don't assume.

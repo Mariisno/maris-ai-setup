@@ -50,7 +50,7 @@ You spend your time on judgment, decisions and taste.
 
 | Folder | What | Where it goes |
 |---|---|---|
-| `plugins/lola/` | the method as a Claude Code plugin: `lead`, `specialist`, `watch`, `harvest`, `setup` skills · `lola-spawn`, `lola-send`, `lola-revive`, `lola-init`, `lola-watch-report` · the dig-guard hook · the **role catalogue** (`roles/`) · tests | installed as a plugin from this repository (it is its own marketplace) |
+| `plugins/lola/` | the method as a Claude Code plugin: `lead`, `specialist`, `watch`, `harvest`, `setup` skills · `lola-spawn`, `lola-send`, `lola-revive`, `lola-init`, `lola-watch-report` · the identity hook and the dig-guard hook · the **role catalogue** (`roles/`) · tests | installed as a plugin from this repository (it is its own marketplace) |
 | `skills/` | ten generic skills: `task-brief` · `sidequest` · `method-issue` · `testing` · `test-round` · `tired-mode` · `microcopy` · `notes-lookup` · `session-summary` · `user-stories` | symlinked into `~/.claude/skills/` |
 | `scripts/` | `quota.sh` (room per account) · `maintenance.sh` (updates and upkeep) · `memory-crossref.sh` (memories across folders) · `skill-audit.sh` (dead `[[links]]`) · `skill-usage.sh` (what is actually used) | symlinked into `~/.claude/scripts/` |
 | `statusline/statusline.sh` | greeting · project · branch · model + effort · account tag · meters for context, 5-hour and weekly limits · a cat | symlinked to `~/.claude/statusline.sh` |

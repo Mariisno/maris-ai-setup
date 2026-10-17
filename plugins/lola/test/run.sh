@@ -51,7 +51,7 @@ mkdir -p "$tmp/bin"
 cat > "$tmp/bin/tmux" <<'TMUX'
 #!/usr/bin/env bash
 printf '%s\n' "$*" >> "$FAKE_TMUX_LOG"
-case "$*" in *"#{${FAKE_LABEL_OPT}}"*) echo "LOLA · lead" ;; esac
+case "$*" in *"#{${FAKE_LABEL_OPT}}"*) echo "${FAKE_LABEL-LOLA · lead}" ;; esac
 TMUX
 chmod +x "$tmp/bin/tmux"
 guard() { # <config> <option the panes carry> <session id>
@@ -64,6 +64,26 @@ guard "$tmp/navn.sh" @navn s1 && grep -qF '#{@navn}' "$tmp/tmux.log" \
   && ok "dig guard: with @navn configured, an @navn lead pane is a lead" || bad "dig guard did not read @navn"
 guard /dev/null @navn s2 && bad "dig guard: @label config must ignore @navn panes" || ok "dig guard: default config ignores @navn panes"
 guard /dev/null @label s3 && ok "dig guard: default config reads @label" || bad "dig guard did not read @label"
+
+# Identity hook: a lead pane gets its context and a state file; a specialist pane gets its
+# context and no state file; an unlabelled or foreign pane gets nothing. Same fake tmux.
+start() { # <label the fake pane carries> <session id> → prints the hook's stdout
+  printf '{"hook_event_name":"SessionStart","session_id":"%s","source":"startup"}' "$2" \
+    | PATH="$tmp/bin:$PATH" TMUX_PANE=%9 LOLA_CONFIG="${CFG:-/dev/null}" LOLA_HOME="$tmp/home" FAKE_LABEL_OPT=@label FAKE_LABEL="$1" \
+      FAKE_TMUX_LOG="$tmp/tmux.log" bash "$root/bin/lola-session-start" 2>/dev/null
+}
+out=$(start "LOLA · lead" sid-lead-1)
+[[ "$out" == *'"hookEventName":"SessionStart"'* && "$out" == *"You are LOLA, the Lola lead"* && "$out" == *"lola:lead"* ]] \
+  && ok "identity: a lead pane is told it is the lead" || bad "identity lead context: $out"
+grep -qx 'session_id=sid-lead-1' "$tmp/home/state/LOLA.session" 2>/dev/null && ok "identity: the lead's session id is saved" || bad "identity: no state file for LOLA"
+out=$(start "CILLA · CRITIC · Work (LOLA)" sid-spec-1)
+[[ "$out" == *"specialist under the lead LOLA"* && "$out" == *"lola:specialist"* ]] && ok "identity: a specialist pane is told its lead" || bad "identity specialist context: $out"
+[ -e "$tmp/home/state/CILLA.session" ] && bad "identity: a specialist must not get a state file" || ok "identity: no state file for a specialist"
+out=$(start "" sid-none); [ -z "$out" ] && ok "identity: an unlabelled pane gets nothing" || bad "identity: unlabelled pane got: $out"
+out=$(start "my own pane" sid-mine); [ -z "$out" ] && ok "identity: a foreign label gets nothing" || bad "identity: foreign label got: $out"
+printf 'LOLA_LEADS=("WEB|the web app|web|/tmp")\n' > "$tmp/leads.sh"
+out=$(CFG="$tmp/leads.sh" start "WEB · lead" sid-web); [[ "$out" == *"lead for: the web app"* ]] && ok "identity: the domain comes from LOLA_LEADS" || bad "identity domain: $out"
+if grep -v '^[[:space:]]*#' "$root/bin/lola-revive" | grep -q -- '--continue'; then bad "revive still uses --continue"; else ok "revive: no --continue, only --resume by saved id"; fi
 
 # Role catalogue: every role and domain file carries a complete machine line, and
 # lola-spawn --role resolves label, model, effort and lead from it without touching tmux.
