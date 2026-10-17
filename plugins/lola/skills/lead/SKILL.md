@@ -69,7 +69,10 @@ corrected cheaply, then brief on that interpretation.
   session shows up in `ListAgents`, `SendMessage` with `notify_when_idle` works too.
 - **Know when a receipt lands without polling:** watch your inbox with the Monitor tool
   (e.g. `tail -n0 -F <inbox dir>/<LEAD>.md`), so each new line wakes you. Never poll a
-  specialist with "are you done?".
+  specialist with "are you done?". **Never edit an inbox in place** (not even to archive old
+  lines): every monitor on it replays the whole file. When it grows past
+  `LOLA_INBOX_WARN_KB`, `lola-inbox-rotate <LEAD>` moves it to `archive/` and starts a fresh
+  one with a pointer line; after a rotation, re-arm your Monitor.
 - **Specialists get names and fixed roles.** The role is written down (assignment file,
   role skill), so a new pane can inherit it. A new side task gets a NEW specialist; it never
   hijacks one that already has a role.

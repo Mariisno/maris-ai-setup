@@ -100,7 +100,7 @@ echo; echo "── Inbox files that have grown unreadable"
 FOUND=0
 for f in "$LOLA_INBOX_DIR"/*.md; do
   [ -f "$f" ] || continue; KB=$(( $(wc -c < "$f") / 1024 ))
-  if [ "$KB" -gt "$LOLA_INBOX_WARN_KB" ]; then echo "  ❌ $(basename "$f") — $KB KB. Archive what is older than 14 days."; FOUND=$((FOUND+1)); fi
+  if [ "$KB" -gt "$LOLA_INBOX_WARN_KB" ]; then echo "  ❌ $(basename "$f") — $KB KB. Rotate it: lola-inbox-rotate $(basename "$f" .md) (never edit it in place: monitors replay)."; FOUND=$((FOUND+1)); fi
 done
 [ "$FOUND" -eq 0 ] && echo "  ✅ all inboxes under $LOLA_INBOX_WARN_KB KB"
 [ $(( LINK_RC + FOUND )) -eq 0 ] && exit 0 || exit 1

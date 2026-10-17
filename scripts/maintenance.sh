@@ -69,7 +69,7 @@ else o "no cron-expiry.txt (WATCH and HARVEST write their expiry there)"; fi
 # 4 · Inboxes
 for f in "$LOLA_INBOX_DIR"/*.md; do
   [ -f "$f" ] || continue; kb=$(( $(wc -c < "$f") / 1024 ))
-  [ "$kb" -gt "$LOLA_INBOX_WARN_KB" ] && y "$(basename "$f") is $kb KB — archive what is older than 7 days"
+  [ "$kb" -gt "$LOLA_INBOX_WARN_KB" ] && y "$(basename "$f") is $kb KB — rotate it: lola-inbox-rotate $(basename "$f" .md) (never edit it in place: monitors replay)"
 done
 
 # 5 · Leftovers
