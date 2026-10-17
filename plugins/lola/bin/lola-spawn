@@ -12,7 +12,7 @@
 #      didn't create
 #   2. a label on the pane (tmux option LOLA_LABEL_OPTION, @label by default): the label,
 #      not the pane title, is identity
-#   3. `claude --name <window> --model <m> --effort <e>; exit`, so the pane closes itself
+#   3. `claude --add-dir $LOLA_HOME --name <window> --model <m> --effort <e>; exit`, so the pane closes itself
 #      when the specialist runs /exit. Effort goes in as a FLAG, never as `/effort`, which
 #      is saved to settings and changes every later session. --name makes the session
 #      addressable by its window name in ListAgents / SendMessage.
@@ -132,6 +132,11 @@ else
   start="$clean CLAUDE_CONFIG_DIR=$(printf '%q' "$config_dir") claude"
 fi
 
+# The specialist reads its assignment and writes to the inbox and the notes, all under
+# LOLA_HOME; --add-dir lets it do that without the "Allow this read outside the working
+# directories?" prompt.
+add_dir="--add-dir $(printf '%q' "$LOLA_HOME")"
+
 # --- The cap, under a lock --------------------------------------------------------------
 CAP="${LOLA_CAP:-$LOLA_SPECIALIST_CAP}"
 release() { lola_unlock spawn; }
@@ -163,6 +168,7 @@ fi
 if [ -n "$DRY" ]; then
   echo "DRY: session $S · window '$window' · label '$label' · $model $effort · account $account${plan:+ ($plan)} · cwd $cwd"
   echo "DRY: assignment: ${assignment:-(none)}"
+  echo "DRY: start: $start $add_dir"
   exit 0
 fi
 
@@ -189,7 +195,7 @@ release   # the label is on the pane, so the next spawn counts it
 tmux set-option -w -t "=$S:=$window" pane-border-status top
 tmux set-option -w -t "=$S:=$window" pane-border-format " #{${LOLA_LABEL_OPTION}} "
 
-tmux send-keys -t "$P" -l "$start --name $(printf '%q' "$window") --model $model --effort $effort; exit"
+tmux send-keys -t "$P" -l "$start $add_dir --name $(printf '%q' "$window") --model $model --effort $effort; exit"
 tmux send-keys -t "$P" Enter
 
 # --- Check the banner -----------------------------------------------------------------
