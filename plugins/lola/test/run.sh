@@ -167,6 +167,10 @@ out=$(spawn --role ux/critic --domain work --effort medium --window w1)
 spawn --role nope/x --domain work >/dev/null; [ $? -eq 2 ] && ok "spawn --role: unknown role is refused" || bad "spawn --role: unknown role accepted"
 spawn --role ux/ui --domain nope >/dev/null; [ $? -eq 2 ] && ok "spawn --role: unknown domain is refused" || bad "spawn --role: unknown domain accepted"
 out=$(spawn review "MAJA · reviewer (LOLA)" claude-opus-5-5 high "hi"); [[ "$out" == *"label 'MAJA · reviewer (LOLA)'"* ]] && ok "spawn: positional form still works" || bad "spawn positional: $out"
+[[ "$out" == *"--add-dir $(printf '%q' "$tmp/home")"* ]] && ok "spawn: the start command adds LOLA_HOME with --add-dir" || bad "spawn --add-dir: $out"
+sp="$tmp/home with space"; mkdir -p "$sp"
+out=$(LOLA_CONFIG=/dev/null LOLA_HOME="$sp" bash "$root/bin/lola-spawn" --dry-run review "MAJA · reviewer (LOLA)" claude-opus-5-5 high "hi" 2>&1)
+[[ "$out" == *"--add-dir $(printf '%q' "$sp")"* && "$out" != *"--add-dir '"* ]] && ok "spawn: --add-dir quotes a LOLA_HOME with a space the %q way" || bad "spawn --add-dir with space: $out"
 [ -e "$tmp/home/.spawn.lock" ] && bad "spawn --dry-run left a lock" || ok "spawn --dry-run takes no lock"
 
 # install.sh in an empty HOME: the rendered CLAUDE.md must carry the real notes path. The
