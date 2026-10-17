@@ -85,7 +85,16 @@ render() { # fill the placeholders the config knows; leave the rest for the pers
     notes="$(bash -c ". '$LOLA_CONFIG' 2>/dev/null; printf '%s' \"\${LOLA_NOTES_DIR:-$HOME/.lola/notes}\"")"
     lead="$(bash -c ". '$LOLA_CONFIG' 2>/dev/null; printf '%s' \"\${LOLA_LEADS[0]%%|*}\"")"
   fi
-  sed -e "s|{{NAME}}|$name|g" -e "s|{{LANGUAGE}}|$lang|g" -e "s|{{NOTES_DIR}}|${notes/#$HOME/~}|g" -e "s|{{LEAD}}|${lead:-LOLA}|g" "$repo/CLAUDE.md.template"
+  # ENVIRON, not -v: awk would read backslashes in the values as escapes
+  R_NAME="$name" R_LANG="$lang" R_NOTES="${notes/#$HOME/~}" R_LEAD="${lead:-LOLA}" awk '
+    function sub_all(s, key, val,   i, out) {
+      out = ""
+      while ((i = index(s, key)) > 0) { out = out substr(s, 1, i - 1) val; s = substr(s, i + length(key)) }
+      return out s
+    }
+    { $0 = sub_all($0, "{{NAME}}", ENVIRON["R_NAME"]); $0 = sub_all($0, "{{LANGUAGE}}", ENVIRON["R_LANG"])
+      $0 = sub_all($0, "{{NOTES_DIR}}", ENVIRON["R_NOTES"]); $0 = sub_all($0, "{{LEAD}}", ENVIRON["R_LEAD"]); print }
+  ' "$repo/CLAUDE.md.template"
 }
 if [ -e "$target/CLAUDE.md" ]; then
   say "  kept       $target/CLAUDE.md (yours). A fresh render is at CLAUDE.md.from-template; merge what you want."

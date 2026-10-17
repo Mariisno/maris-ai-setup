@@ -35,7 +35,7 @@ LOLA_SWEEP_SPECIALISTS=1
 # --- Pane labels -----------------------------------------------------------------------
 # The tmux user option that holds each pane's label: its identity. Lola sets it on the panes
 # it starts and reads it everywhere else. Keep @label unless your panes already carry another
-# option. Example: a setup whose panes are named with @navn (as the author's are) sets
+# option. Example: a setup whose panes are named with @navn sets
 #   LOLA_LABEL_OPTION="@navn"
 # Only @ followed by letters, digits, - and _ is accepted; anything else falls back to @label.
 LOLA_LABEL_OPTION="@label"

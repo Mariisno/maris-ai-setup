@@ -156,8 +156,9 @@ trigger lines carry Norwegian phrases too, so they fire in either.
 
 ## Safety
 
-- Nothing here sends anything off your machine. `lola-watch-report` reads GitHub only if
-  you set `LOLA_GITHUB_USER`.
+- Nothing here uploads anything. Two scripts read from the network: `maintenance.sh` asks
+  the npm registry for the newest Claude Code version, and `lola-watch-report` reads GitHub
+  only if you set `LOLA_GITHUB_USER`.
 - `install.sh` creates symlinks, the config and (optionally) `CLAUDE.md`. It never edits
   `settings.json`, never overwrites without a backup, and `--dry-run` shows every step.
 - The plugin's scripts mark every tmux session they create and touch nothing without the
