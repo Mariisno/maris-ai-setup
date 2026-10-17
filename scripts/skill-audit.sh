@@ -56,7 +56,7 @@ while IFS= read -r file; do
   [ -z "$file" ] && continue
   links="$(grep -oE '\[\[[^]]+\]\]' "$file" 2>/dev/null | sed -E 's/^\[\[//; s/\]\]$//' || true)"
   [ -z "$links" ] && continue
-  FILES_SCANNED=$((FILES_SCANNED + 1)); rel="${file#$HOME/}"
+  FILES_SCANNED=$((FILES_SCANNED + 1)); rel="${file#"$HOME"/}"
   while IFS= read -r raw; do
     [ -z "$raw" ] && continue
     slug="$(normalise "$raw")"; is_placeholder "$slug" && continue

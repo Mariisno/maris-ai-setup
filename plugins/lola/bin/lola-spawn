@@ -120,6 +120,7 @@ else
   exit 2
 fi
 
+case "$effort" in low|medium|high|xhigh|max) ;; *) echo "ERROR: effort '$effort' is not one of low, medium, high, xhigh, max. Nothing started."; exit 2 ;; esac
 acct=$(lola_account "$account") || { echo "ERROR: no account named '$account' in LOLA_ACCOUNTS. Nothing started."; exit 2; }
 config_dir="${acct%%|*}"; plan="${acct#*|}"
 # A pane started from inside another Claude Code session inherits its session markers; a
@@ -128,7 +129,7 @@ clean="env -u CLAUDE_CODE_CHILD_SESSION -u CLAUDE_CODE_SESSION_ID -u CLAUDE_CODE
 if [ "$config_dir" = "$HOME/.claude" ]; then
   start="unset CLAUDE_CONFIG_DIR; $clean claude"
 else
-  start="$clean CLAUDE_CONFIG_DIR=$config_dir claude"
+  start="$clean CLAUDE_CONFIG_DIR=$(printf '%q' "$config_dir") claude"
 fi
 
 # --- The cap, under a lock --------------------------------------------------------------
@@ -188,7 +189,7 @@ release   # the label is on the pane, so the next spawn counts it
 tmux set-option -w -t "=$S:=$window" pane-border-status top
 tmux set-option -w -t "=$S:=$window" pane-border-format " #{${LOLA_LABEL_OPTION}} "
 
-tmux send-keys -t "$P" -l "$start --name '$window' --model $model --effort $effort; exit"
+tmux send-keys -t "$P" -l "$start --name $(printf '%q' "$window") --model $model --effort $effort; exit"
 tmux send-keys -t "$P" Enter
 
 # --- Check the banner -----------------------------------------------------------------

@@ -39,7 +39,7 @@ park() { # <path> <wanted link target>
   if [ -e "$p" ] || [ -L "$p" ]; then
     run mkdir -p "$backup"
     run mv "$p" "$backup/$(basename "$p")"
-    say "  backed up  ${p#$HOME/} → $backup/"
+    say "  backed up  ${p#"$HOME"/} → $backup/"
   fi
   return 0
 }
@@ -47,9 +47,9 @@ link() { # <source> <dest>
   if park "$2" "$1"; then
     run mkdir -p "$(dirname "$2")"
     run ln -s "$1" "$2"
-    say "  linked     ${2#$HOME/}  →  ${1#$HOME/}"
+    say "  linked     ${2#"$HOME"/}  →  ${1#"$HOME"/}"
   else
-    say "  kept       ${2#$HOME/} (already linked)"
+    say "  kept       ${2#"$HOME"/} (already linked)"
   fi
 }
 

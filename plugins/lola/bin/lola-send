@@ -51,8 +51,9 @@ fi
 
 # paste-buffer instead of send-keys -l: the message arrives atomically. Typing character by
 # character can lose a race against a startup screen.
-printf '%s' "$msg" | tmux load-buffer -b lolasend -
-tmux paste-buffer -b lolasend -d -t "$pane"
+# One buffer name per process: two leads sending in the same second must not swap messages.
+printf '%s' "$msg" | tmux load-buffer -b "lolasend-$$" -
+tmux paste-buffer -b "lolasend-$$" -d -t "$pane"
 sleep 1
 tmux send-keys -t "$pane" Enter
 sleep 2

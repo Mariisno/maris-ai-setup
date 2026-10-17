@@ -24,7 +24,9 @@ here="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "$here/../lib/lola-config.sh"
 
 DRY="${1:-}"
-run() { if [ "$DRY" = "--dry" ]; then echo "DRY: $*"; else eval "$*"; fi; }
+# run <command> [args…] — the arguments stay separate words all the way to tmux: no eval, no
+# re-quoting, so a session name or label with spaces or quotes is just a value.
+run() { if [ "$DRY" = "--dry" ]; then printf 'DRY:'; printf ' %q' "$@"; echo; else "$@"; fi; }
 q() { printf '%q' "$1"; }
 
 owned_sessions=()   # sessions this run created or verified as Lola's
@@ -40,16 +42,16 @@ declare_window() {
       skipped+=("$s"); return 1
     fi
     if ! tmux list-windows -t "=$s" -F '#{window_name}' 2>/dev/null | grep -qx "$w"; then
-      run "tmux new-window -d -t $(q "=$s:") -n $(q "$w") -c $(q "$c")"
-      run "tmux set-option -w -t $(q "=$s:=$w") @lola 1"
+      run tmux new-window -d -t "=$s:" -n "$w" -c "$c"
+      run tmux set-option -w -t "=$s:=$w" @lola 1
     elif ! lola_owns_window "$s" "$w"; then
       echo "SKIP: window '$w' in session '$s' wasn't created by Lola. Left alone."
       skipped+=("$s:$w"); return 1
     fi
   else
-    run "tmux new-session -d -s $(q "$s") -n $(q "$w") -c $(q "$c")"
-    run "tmux set-option -t $(q "=$s:") @lola 1"
-    run "tmux set-option -w -t $(q "=$s:=$w") @lola 1"
+    run tmux new-session -d -s "$s" -n "$w" -c "$c"
+    run tmux set-option -t "=$s:" @lola 1
+    run tmux set-option -w -t "=$s:=$w" @lola 1
   fi
   owned_sessions+=("$s")
 
@@ -57,10 +59,10 @@ declare_window() {
   p=$(tmux list-panes -t "=$s:=$w" -F '#{pane_id} #{pane_current_command}' 2>/dev/null | head -1)
   pid="${p%% *}"; cmd="${p#* }"
   [ -n "$pid" ] || return 0   # dry run: the window doesn't exist yet
-  run "tmux set-option -p -t $(q "$pid") ${LOLA_LABEL_OPTION} $(q "$l")"
+  run tmux set-option -p -t "$pid" "${LOLA_LABEL_OPTION}" "$l"
   # Start only in empty shells, never on top of a living program.
   if [ -n "$k" ] && lola_is_shell "$cmd"; then
-    run "tmux send-keys -t $(q "$pid") -l $(q "$k")"; run "tmux send-keys -t $(q "$pid") Enter"
+    run tmux send-keys -t "$pid" -l "$k"; run tmux send-keys -t "$pid" Enter
   fi
   return 0
 }
@@ -68,7 +70,7 @@ declare_window() {
 lead_windows=()
 lead_flags="--model $LOLA_LEAD_MODEL --effort $LOLA_LEAD_EFFORT"
 for row in "${LOLA_LEADS[@]}"; do
-  IFS='|' read -r name domain sess cwd <<< "$row"
+  IFS='|' read -r name _domain sess cwd <<< "$row"
   [ -n "$name" ] || continue
   # Resume exactly this lead's last conversation when the hook remembered it; if the id is
   # gone (transcript deleted), --resume exits non-zero and a fresh session starts instead.
@@ -84,32 +86,35 @@ declare_window "$LOLA_SPECIALIST_SESSION" "slot-1" "$LOLA_SPECIALIST_CWD" "free 
 
 # The look, only on Lola's own sessions and windows (never -g): labels on pane borders, and
 # a silence flag (30 minutes without output is marked in the status bar) without a pop-up.
-for s in $(printf '%s\n' ${owned_sessions[@]+"${owned_sessions[@]}"} | sort -u); do
-  run "tmux set-option -t $(q "=$s:") visual-silence off"
-  for w in $(tmux list-windows -t "=$s" -F '#{window_name}' 2>/dev/null); do
+while IFS= read -r s; do
+  [ -n "$s" ] || continue
+  run tmux set-option -t "=$s:" visual-silence off
+  while IFS= read -r w; do
+    [ -n "$w" ] || continue
     lola_owns_window "$s" "$w" || continue
-    run "tmux set-option -w -t $(q "=$s:=$w") pane-border-status top"
-    run "tmux set-option -w -t $(q "=$s:=$w") pane-border-format $(q " #{${LOLA_LABEL_OPTION}} ")"
-  done
-done
+    run tmux set-option -w -t "=$s:=$w" pane-border-status top
+    run tmux set-option -w -t "=$s:=$w" pane-border-format " #{${LOLA_LABEL_OPTION}} "
+  done < <(tmux list-windows -t "=$s" -F '#{window_name}' 2>/dev/null)
+done < <(printf '%s\n' ${owned_sessions[@]+"${owned_sessions[@]}"} | sort -u)
 for t in ${lead_windows[@]+"${lead_windows[@]}"}; do
   s="${t%%:*}"; w="${t#*:}"
   tmux list-windows -t "=$s" -F '#{window_name}' 2>/dev/null | grep -qx "$w" && \
-    run "tmux set-option -w -t $(q "=$s:=$w") monitor-silence 1800"
+    run tmux set-option -w -t "=$s:=$w" monitor-silence 1800
 done
 
 # Specialist sweep: windows in a lead's session whose label looks like a specialist
 # ("NAME · role", not a lead) move to the specialist session, so you only see leads.
 # Only between sessions that are both Lola's.
 if [ "$LOLA_SWEEP_SPECIALISTS" = 1 ] && [ "$spec_ok" = 1 ]; then
-  for s in $(printf '%s\n' ${lead_windows[@]+"${lead_windows[@]}"} | cut -d: -f1 | sort -u); do
+  while IFS= read -r s; do
+    [ -n "$s" ] || continue
     tmux list-panes -s -t "=$s" -F "#{window_id}|#{${LOLA_LABEL_OPTION}}" 2>/dev/null \
       | while IFS='|' read -r win lab; do
           [[ "$lab" == *"·"* ]] || continue
           lola_is_lead "$lab" && continue
-          run "tmux move-window -s $(q "$win") -t $(q "=$LOLA_SPECIALIST_SESSION:")" || true
+          run tmux move-window -s "$win" -t "=$LOLA_SPECIALIST_SESSION:" || true
         done
-  done
+  done < <(printf '%s\n' ${lead_windows[@]+"${lead_windows[@]}"} | cut -d: -f1 | sort -u)
 fi
 
 if [ ${#skipped[@]} -gt 0 ]; then
