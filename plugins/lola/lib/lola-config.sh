@@ -58,7 +58,7 @@ LOLA_HYGIENE_FILE="${LOLA_HYGIENE_FILE:-$LOLA_NOTES_DIR/Hygiene jobs.md}"
 LOLA_METHOD_LOG="${LOLA_METHOD_LOG:-$LOLA_NOTES_DIR/Method log.md}"
 # The role catalogue ships with the plugin; point LOLA_ROLES_DIR at a copy to edit it freely.
 LOLA_ROLES_DIR="${LOLA_ROLES_DIR:-$LOLA_ROOT/roles}"
-# Where the status line writes one usage snapshot per account, for quota.sh.
+# Where the status line writes its usage snapshot, for quota.sh.
 LOLA_USAGE_DIR="${LOLA_USAGE_DIR:-$LOLA_HOME/usage}"
 
 # lola_lead_names — one lead NAME per line.

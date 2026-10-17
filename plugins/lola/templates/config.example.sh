@@ -42,12 +42,10 @@ LOLA_LABEL_OPTION="@label"
 
 # --- Accounts --------------------------------------------------------------------------
 # One row per Claude account you run sessions on. Format: "name|config dir|plan label".
-# The plan label is what Claude Code's startup banner shows after the effort, e.g.
-# "Claude Team" or "Claude Max". Leave it empty to skip the plan check when spawning.
+# The plan label is the plan name Claude Code's startup banner shows after the effort.
+# Leave it empty to skip the plan check when spawning.
 LOLA_ACCOUNTS=(
   "default|$HOME/.claude|"
-  # "team|$HOME/.claude|Claude Team"
-  # "personal|$HOME/.claude-personal|Claude Max"
 )
 # Account a specialist starts on unless `LOLA_ACCOUNT=<name>` is set for the spawn.
 LOLA_DEFAULT_ACCOUNT="default"
@@ -93,8 +91,10 @@ LOLA_ROLES_DIR=""
 LOLA_SPECIALIST_CAP=5
 
 # --- Usage and maintenance -------------------------------------------------------------
-# The status line writes one usage snapshot per account here; scripts/quota.sh reads them.
+# The status line writes a usage snapshot here; scripts/quota.sh reads it.
 LOLA_USAGE_DIR="$LOLA_HOME/usage"
+# The status line's cat, Sussi, is Mari's signature. 0 leaves her out.
+STATUSLINE_PERSONAL=1
 # Folders scripts/maintenance.sh sweeps for stale git locks and extra worktrees. Empty = skip.
 LOLA_PROJECT_DIRS=(
   # "$HOME/code"

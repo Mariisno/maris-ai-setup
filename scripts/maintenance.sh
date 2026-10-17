@@ -82,11 +82,10 @@ bak=$(find "$CLAUDE_DIR" -maxdepth 5 -name '*.bak*' -mtime +14 -not -path '*/_ar
 [ "$bak" -gt 0 ] && y "$bak backup files older than 14 days in $CLAUDE_DIR"
 
 # 6 · Quota
-while read -r k p _; do
-  if [ "$p" = "-" ]; then y "quota $k: no numbers yet"
-  elif [ "$p" -ge 90 ]; then r "quota $k: 7d $p %"
-  elif [ "$p" -ge 75 ]; then y "quota $k: 7d $p %"
-  else o "quota $k: 7d $p %"; fi
-done < <("$here/quota.sh" --raw)
+read -r p _ < <("$here/quota.sh" --raw)
+if [ "${p:--}" = "-" ]; then y "quota: no numbers yet"
+elif [ "$p" -ge 90 ]; then r "quota: 7d $p %"
+elif [ "$p" -ge 75 ]; then y "quota: 7d $p %"
+else o "quota: 7d $p %"; fi
 
 echo "— $red 🔴 · $yellow 🟡"
