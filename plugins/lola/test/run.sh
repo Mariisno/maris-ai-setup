@@ -192,5 +192,13 @@ if [ ! -e "$nh/.claude/statusline.sh" ] && [ ! -e "$nh/.claude/skills/task-brief
 [ -f "$nh/.claude/CLAUDE.md" ] && [ -f "$nh/.lola/config.sh" ] && ok "install.sh --uninstall: CLAUDE.md and ~/.lola are kept" || bad "install.sh --uninstall touched CLAUDE.md or ~/.lola"
 grep -q 'claude plugin uninstall lola@maris-ai-setup' "$tmp/un.log" && ok "install.sh --uninstall: prints the plugin removal" || bad "install.sh --uninstall: no plugin removal printed"
 
+# install.sh --help prints the whole header comment and nothing else (a hard-coded line
+# range once ran past the header into code).
+help="$(bash "$root/../../install.sh" --help)"
+last="$(awk 'NR > 1 && !/^#/ { sub(/^# ?/, "", prev); print prev; exit } { prev = $0 }' "$root/../../install.sh")"
+if grep -qE '^(#|set |repo=)' <<<"$help"; then bad "install.sh --help prints code: $(grep -m1 -E '^(#|set |repo=)' <<<"$help")"
+elif [ -n "$last" ] && [ "$(tail -n 1 <<<"$help")" = "$last" ]; then ok "install.sh --help: the header, to its last line"
+else bad "install.sh --help lost the end of the header"; fi
+
 echo; echo "$((n - fail))/$n passed"
 [ "$fail" -eq 0 ]
