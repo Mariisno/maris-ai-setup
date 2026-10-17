@@ -1,4 +1,5 @@
 # Lola configuration — the ONE file that holds everything personal.
+# shellcheck disable=SC2034  # sourced by lib/lola-config.sh, which reads every key below
 #
 # `lola-init` copies this to ~/.lola/config.sh (or $LOLA_CONFIG). Every script and skill
 # reads from there; nothing else in the plugin needs editing. The defaults work as-is for a

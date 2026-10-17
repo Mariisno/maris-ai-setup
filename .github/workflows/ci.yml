@@ -1,5 +1,8 @@
-# Runs ShellCheck (errors only), the status line smoke test and the Lola tests on every PR
-# and on push to main. jq, ShellCheck and locale-gen come with the Ubuntu runner. No secrets.
+# Runs on every PR and on push to main. No secrets.
+#   test        Ubuntu: ShellCheck (errors) on the status line's own files, the status line
+#               smoke test (needs the nb_NO locale), and the Lola tests
+#   lola-tests  the Lola tests again on macOS (bash 3.2, BSD awk and sed: the floor we support)
+#   shellcheck  every script in the repository, bash dialect, warning and up
 name: CI
 
 on:
@@ -21,3 +24,25 @@ jobs:
       - run: shellcheck --severity=error statusline/statusline.sh statusline/test.sh scripts/quota.sh scripts/maintenance.sh
       - run: bash statusline/test.sh
       - run: bash plugins/lola/test/run.sh
+
+  lola-tests:
+    name: lola tests · macOS
+    runs-on: macos-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash --version | head -1
+      - run: bash plugins/lola/test/run.sh
+
+  shellcheck:
+    name: shellcheck · every script
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: shellcheck --version | head -2
+      - run: |
+          shellcheck -x --shell=bash --severity=warning \
+            install.sh scripts/*.sh statusline/statusline.sh statusline/test.sh \
+            plugins/lola/bin/* plugins/lola/lib/lola-config.sh plugins/lola/templates/config.example.sh \
+            plugins/lola/test/run.sh

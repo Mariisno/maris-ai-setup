@@ -21,7 +21,8 @@ o(){ printf '✓  %s\n' "$1"; }
 
 # 1 · Claude Code
 inst="$(claude --version 2>/dev/null | awk '{print $1}')"
-newest="$(timeout 8 npm view @anthropic-ai/claude-code version 2>/dev/null || true)"
+# npm's own timeout: `timeout` is not on macOS.
+newest="$(npm view @anthropic-ai/claude-code version --fetch-timeout=8000 --fetch-retries=0 2>/dev/null || true)"
 if [ -n "$newest" ] && [ "$newest" != "$inst" ]; then y "CLI $inst installed, $newest available (updates itself at the next start)"; else o "CLI ${inst:-?}${newest:+ (newest)}"; fi
 old="$(tmux list-panes -a -F "#{pane_current_command} #{${LOLA_LABEL_OPTION}}" 2>/dev/null | awk -v v="$inst" '$1 ~ /^[0-9]+\./ && $1 != v {print "   " $0}')"
 if [ -n "$old" ]; then y "panes on an older CLI (they get the new one at restart):"; echo "$old"; else o "all panes on CLI ${inst:-?}"; fi
@@ -74,8 +75,8 @@ done
 # 5 · Leftovers
 for p in ${LOLA_PROJECT_DIRS[@]+"${LOLA_PROJECT_DIRS[@]}"}; do
   [ -d "$p" ] || continue
-  for l in $(find "$p" -maxdepth 3 -name index.lock -path '*/.git/*' -mmin +60 2>/dev/null); do r "stale $l — blocks commits (deleting needs a yes)"; done
-  wt=$(for g in $(find "$p" -maxdepth 3 -name .git -type d 2>/dev/null); do git -C "${g%/.git}" worktree list 2>/dev/null | tail -n +2; done | wc -l | tr -d ' ')
+  while IFS= read -r l; do [ -n "$l" ] && r "stale $l — blocks commits (deleting needs a yes)"; done < <(find "$p" -maxdepth 3 -name index.lock -path '*/.git/*' -mmin +60 2>/dev/null)
+  wt=$(while IFS= read -r g; do [ -n "$g" ] && git -C "${g%/.git}" worktree list 2>/dev/null | tail -n +2; done < <(find "$p" -maxdepth 3 -name .git -type d 2>/dev/null) | wc -l | tr -d ' ')
   [ "$wt" -gt 0 ] && y "$wt extra git worktrees under $p"
 done
 bak=$(find "$CLAUDE_DIR" -maxdepth 5 -name '*.bak*' -mtime +14 -not -path '*/_archive/*' 2>/dev/null | wc -l | tr -d ' ')

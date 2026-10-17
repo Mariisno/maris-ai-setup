@@ -18,7 +18,7 @@ MINE="$ROOT/$CWD_SLUG/memory"
 HOME_SLUG="$(printf '%s' "$HOME" | sed 's|/|-|g')"
 
 label() { basename "$(dirname "$1")" | sed "s|^$HOME_SLUG|~|; s|-|/|g"; }
-count() { ls "$1"/*.md 2>/dev/null | grep -vE 'MEMORY\.md|_inbox\.md' | grep -c . ; }
+count() { local n=0 f; for f in "$1"/*.md; do [ -e "$f" ] || continue; case "$(basename "$f")" in MEMORY.md|_inbox.md) ;; *) n=$((n+1)) ;; esac; done; echo "$n"; }
 
 case "${1:-}" in
   --others)

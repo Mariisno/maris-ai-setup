@@ -16,7 +16,7 @@ ok()  { n=$((n+1)); printf 'ok   %s\n' "$1"; }
 bad() { n=$((n+1)); fail=$((fail+1)); printf 'FAIL %s\n' "$1"; }
 
 for f in "$root"/bin/* "$root"/lib/*.sh "$root"/templates/*.sh; do
-  if bash -n "$f" 2>/dev/null; then ok "parses: ${f#$root/}"; else bad "parses: ${f#$root/}"; fi
+  if bash -n "$f" 2>/dev/null; then ok "parses: ${f#"$root"/}"; else bad "parses: ${f#"$root"/}"; fi
 done
 
 for f in "$root"/test/fixtures/menu-*.txt; do
@@ -140,7 +140,7 @@ queue add "Pipe | in a field" "yes/no" "/tmp/x" TORE >/dev/null
 [ "$(queue list | grep -c .)" = 2 ] && ok "queue: list shows two open rows" || bad "queue list: $(queue list)"
 queue list | sed -n 1p | grep -q 'Checkout copy' && queue list | sed -n 2p | grep -qF 'Pipe \| in a field' && ok "queue: rows in order, | escaped" || bad "queue order/escape: $(queue list)"
 awk '/^## Open/{o=1} /^## Done/{o=0} o' "$qh/notes/Waiting on you.md" | grep -q 'Checkout copy' && ok "queue: the row is under ## Open" || bad "queue: row not under ## Open"
-queue done 1 "B" >/dev/null && [ "$(queue list | grep -c .)" = 1 ] && awk '/^## Done/{d=1} d' "$qh/notes/Waiting on you.md" | grep -q '| Checkout copy | B |' && ok "queue: done moves the row to ## Done with the answer" || bad "queue done: $(cat "$qh/notes/Waiting on you.md")"
+queue "done" 1 "B" >/dev/null && [ "$(queue list | grep -c .)" = 1 ] && awk '/^## Done/{d=1} d' "$qh/notes/Waiting on you.md" | grep -q '| Checkout copy | B |' && ok "queue: done moves the row to ## Done with the answer" || bad "queue done: $(cat "$qh/notes/Waiting on you.md")"
 for i in $(seq 1 20); do queue add "Row $i" "ok" "/tmp/$i" T >/dev/null & done; wait
 [ "$(queue list | grep -c 'Row ')" = 20 ] && ok "queue: 20 concurrent adds, 20 rows (the lock holds)" || bad "queue concurrency: $(queue list | grep -c 'Row ') of 20 rows survived"
 [ -d "$qh/.queue.lock" ] && bad "queue: a lock was left behind" || ok "queue: no lock left behind"
@@ -151,7 +151,7 @@ queue add "only" "three" "args" 2>/dev/null; [ $? -eq 2 ] && ok "queue: wrong ar
 for f in "$root"/roles/*/*.md; do
   case "$f" in */domains/*) keys="name lead" ;; *) keys="role model effort" ;; esac
   miss=""; for k in $keys; do [ -n "$(lola_role_meta "$f" "$k")" ] || miss="$miss $k"; done
-  if [ -z "$miss" ]; then ok "machine line: ${f#$root/}"; else bad "machine line: ${f#$root/} lacks$miss"; fi
+  if [ -z "$miss" ]; then ok "machine line: ${f#"$root"/}"; else bad "machine line: ${f#"$root"/} lacks$miss"; fi
 done
 spawn() { LOLA_CONFIG=/dev/null LOLA_HOME="$tmp/home" bash "$root/bin/lola-spawn" --dry-run "$@" 2>&1; }
 out=$(spawn --role ux/critic --domain work --name CILLA "Review it.")
@@ -168,7 +168,7 @@ out=$(spawn review "MAJA · reviewer (LOLA)" claude-opus-5-5 high "hi"); [[ "$ou
 # install.sh in an empty HOME: the rendered CLAUDE.md must carry the real notes path. The
 # config says "$LOLA_HOME/notes"; read bare, without the loader, that once rendered as "/notes".
 nh="$tmp/newuser"; mkdir -p "$nh"
-if HOME="$nh" CLAUDE_CONFIG_DIR= bash "$root/../../install.sh" >"$tmp/install.log" 2>&1; then
+if HOME="$nh" CLAUDE_CONFIG_DIR='' bash "$root/../../install.sh" >"$tmp/install.log" 2>&1; then
   ok "install.sh: runs in an empty HOME"
   grep -qF '# The notes (~/.lola/notes)' "$nh/.claude/CLAUDE.md" && ok "install.sh: CLAUDE.md renders the notes path" \
     || bad "install.sh: CLAUDE.md notes path: $(grep -m1 '^# The notes' "$nh/.claude/CLAUDE.md")"

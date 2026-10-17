@@ -184,8 +184,11 @@ trigger lines carry Norwegian phrases too, so they fire in either.
 plugins/lola/test/run.sh
 ```
 
-Bash and awk only, no tmux needed: scripts parse, menu detection, label option, the role
-catalogue's machine lines, and `lola-spawn --role` resolution (dry run).
+Bash and awk only, no tmux needed: scripts parse, menu and unsent-message detection, the
+label option, the identity hook, the queue script (including concurrent writes), the watch
+report against a fake tmux, `install.sh` in an empty HOME, the role catalogue's machine lines,
+and `lola-spawn --role` resolution (dry run). The same suite runs in GitHub Actions on
+Ubuntu and macOS, with ShellCheck over every script (`.github/workflows/test.yml`).
 
 ## License
 
