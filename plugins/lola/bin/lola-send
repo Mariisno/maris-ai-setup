@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Part of Mari's AI Setup by Mari Svennevik Notland · https://github.com/Mariisno/maris-ai-setup · MIT License
 # lola-send <pane-id> <message> — deliver a message to a specialist pane and verify it landed.
 #
 # Paste-buffer + Enter, then check the message stands as sent in the scrollback, and press

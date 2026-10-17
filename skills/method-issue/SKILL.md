@@ -2,6 +2,10 @@
 name: method-issue
 argument-hint: <what slipped>
 description: Use when we notice a flaw, a gap or a breach in our own way of working — a routine that wasn't followed, a skill mechanism that doesn't work, an instruction that is out of date. Logged IMMEDIATELY in the method log with severity and priority; fixed when it suits. Sister of sidequest (new work); this one is for errors in how we work. Triggers - "/method-issue <finding>", "/skill-issue", "this slipped", "the skill doesn't work", "we didn't follow what we agreed", «dette glapp», «metodefeil», a routine deviation noticed during work.
+license: MIT
+metadata:
+  author: Mari Svennevik Notland
+  source: https://github.com/Mariisno/maris-ai-setup
 ---
 
 # Method issue — catch it now, fix it when it suits

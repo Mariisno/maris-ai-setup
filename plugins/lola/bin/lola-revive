@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Part of Mari's AI Setup by Mari Svennevik Notland · https://github.com/Mariisno/maris-ai-setup · MIT License
 # lola-revive — raise the whole lead setup again, e.g. after a restart (the tmux server dies
 # with the machine; this is the two-minute way back). Safe to run at any time:
 #   - it only changes tmux sessions and windows Lola created (marked @lola). A session of

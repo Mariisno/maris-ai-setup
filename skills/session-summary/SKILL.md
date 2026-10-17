@@ -2,6 +2,10 @@
 name: session-summary
 argument-hint: "[tidy]"
 description: Use when the person wants the current Claude Code session summarised and saved as a re-readable section in the daily session log — typically when a meaningful session lands. Also has a tidy mode that reviews recent session-log files, cross-checks loose threads, and proposes maintenance without changing anything. Triggers - "/session-summary", "summarise the session", "save a session note", "we landed something", "tidy the session log", «oppsummer økta», «skriv økt-notat», «rydd i øktloggen».
+license: MIT
+metadata:
+  author: Mari Svennevik Notland
+  source: https://github.com/Mariisno/maris-ai-setup
 ---
 
 # Session summary → the daily session log

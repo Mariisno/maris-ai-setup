@@ -1,6 +1,10 @@
 ---
 name: specialist
 description: Use when a Claude Code session has been started as a named specialist under a Lola lead (its first message points to an assignment file, or says "you are <NAME>"), when it takes over a role another pane held, and before a specialist reports back, stops, runs out of quota or exits.
+license: MIT
+metadata:
+  author: Mari Svennevik Notland
+  source: https://github.com/Mariisno/maris-ai-setup
 ---
 
 # Specialist — working under a lead

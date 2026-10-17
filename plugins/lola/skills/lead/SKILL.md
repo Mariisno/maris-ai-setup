@@ -1,6 +1,10 @@
 ---
 name: lead
 description: Use when a Claude Code session acts as a lead (its tmux pane label starts with a lead name from the Lola config), when the user asks to delegate, parallelise, or "get a specialist on it", when more than one task is in flight at once, and before the lead reads code, docs or long files itself.
+license: MIT
+metadata:
+  author: Mari Svennevik Notland
+  source: https://github.com/Mariisno/maris-ai-setup
 ---
 
 # Lead — the Lola method

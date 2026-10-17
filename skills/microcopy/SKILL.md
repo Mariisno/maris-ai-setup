@@ -1,6 +1,10 @@
 ---
 name: microcopy
 description: Use when microcopy / UX copy is to be written or improved — validation messages, error messages, button labels, empty states, confirmations, tooltips and other short interface text. Triggers - "/microcopy", "what should the button say", "write the error message", "improve this text", "what do we say when the list is empty", "this text is too technical", «hva skal det stå på knappen», «skriv feilmeldingen», «tekst til tom tilstand».
+license: MIT
+metadata:
+  author: Mari Svennevik Notland
+  source: https://github.com/Mariisno/maris-ai-setup
 ---
 
 # Microcopy (UX copy)

@@ -1,3 +1,4 @@
+# Part of Mari's AI Setup by Mari Svennevik Notland · https://github.com/Mariisno/maris-ai-setup · MIT License
 # lola-config.sh — sourced by every Lola script. Loads the user's ONE config file on top
 # of the defaults, so a missing file or a missing key never breaks a script.
 #

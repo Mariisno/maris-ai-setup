@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Part of Mari's AI Setup by Mari Svennevik Notland · https://github.com/Mariisno/maris-ai-setup · MIT License
 # skill-audit.sh — verify that [[wikilinks]] in your skills and memory files point to real
 # targets (a memory file or another skill), and that inbox files haven't grown unreadable.
 #

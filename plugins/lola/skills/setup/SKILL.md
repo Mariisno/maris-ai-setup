@@ -2,6 +2,10 @@
 name: setup
 description: Use when the user wants to set up Lola for the first time, add or rename a lead, point Lola at a notes folder or Obsidian vault, add a second Claude account, check that the setup works, or bring the lead sessions back after a restart.
 argument-hint: "[init | doctor | revive]"
+license: MIT
+metadata:
+  author: Mari Svennevik Notland
+  source: https://github.com/Mariisno/maris-ai-setup
 ---
 
 # Lola setup

@@ -1,6 +1,10 @@
 ---
 name: user-stories
 description: Use when user stories are to be written, reviewed or improved — when planning a feature or a slice, or when a requirement is a loose sentence that should be structured. Triggers - "/user-stories", "write a user story", "turn this into user stories", "is this story good enough", "which acceptance criteria do we need", «skriv en brukerhistorie», «lag user stories av dette», a requirement in loose prose.
+license: MIT
+metadata:
+  author: Mari Svennevik Notland
+  source: https://github.com/Mariisno/maris-ai-setup
 ---
 
 # User stories

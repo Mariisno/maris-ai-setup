@@ -2,13 +2,13 @@
   "name": "lola",
   "displayName": "Lola",
   "version": "0.2.0",
-  "description": "A lead/specialist method for running several Claude Code sessions in parallel: one lead per domain, named specialists from a role catalogue in a hidden tmux session, file inboxes, a queue of what waits on you, and notes that keep every insight.",
+  "description": "From Mari's AI Setup: a lead/specialist method for running several Claude Code sessions in parallel: one lead per domain, named specialists from a role catalogue in a hidden tmux session, file inboxes, a queue of what waits on you, and notes that keep every insight.",
   "author": {
     "name": "Mari Svennevik Notland",
     "url": "https://github.com/Mariisno"
   },
-  "homepage": "https://github.com/Mariisno/my-ai-setup",
-  "repository": "https://github.com/Mariisno/my-ai-setup",
+  "homepage": "https://github.com/Mariisno/maris-ai-setup",
+  "repository": "https://github.com/Mariisno/maris-ai-setup",
   "license": "MIT",
   "keywords": [
     "multi-session",

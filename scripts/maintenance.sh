@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Part of Mari's AI Setup by Mari Svennevik Notland · https://github.com/Mariisno/maris-ai-setup · MIT License
 # maintenance.sh — one check for updates and upkeep. Read-only: it changes nothing.
 # Run it at the start of a day, or let WATCH run it weekly.
 #   1 Claude Code: installed vs newest, and panes still on an older version

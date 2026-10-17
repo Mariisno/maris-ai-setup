@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Part of Mari's AI Setup by Mari Svennevik Notland · https://github.com/Mariisno/maris-ai-setup · MIT License
 # skill-usage.sh [days] — how often each of your own skills was used in the last N days (default 30),
 # measured in the transcripts. 0 hits = a candidate for skills/_archive/ (move it, don't delete it).
 # Read-only.
