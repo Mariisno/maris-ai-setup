@@ -9,6 +9,8 @@
 # --- You -------------------------------------------------------------------------------
 # How leads and specialists refer to you in notes and reports.
 LOLA_USER_NAME="you"
+# Your pronouns, rendered into CLAUDE.md (empty = left for you to fill in there).
+LOLA_USER_PRONOUNS=""
 # The language sessions write notes, reports and receipts in.
 LOLA_LANGUAGE="English"
 

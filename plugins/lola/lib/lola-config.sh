@@ -11,6 +11,7 @@ LOLA_ROOT="$(cd -P "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Defaults: identical to templates/config.example.sh.
 LOLA_USER_NAME="you"
+LOLA_USER_PRONOUNS=""
 LOLA_LANGUAGE="English"
 LOLA_LEADS=("LOLA|everything, including how you work (skills, scripts, instructions)|lola|$HOME")
 LOLA_LEAD_MODEL="claude-opus-5-5"
@@ -174,7 +175,7 @@ lola_unsent_text() {
 
 # lola_export — export the config for child processes (python helpers, hooks).
 lola_export() {
-  export LOLA_HOME LOLA_CONFIG LOLA_ROOT LOLA_USER_NAME LOLA_LANGUAGE LOLA_LEAD_MODEL \
+  export LOLA_HOME LOLA_CONFIG LOLA_ROOT LOLA_USER_NAME LOLA_USER_PRONOUNS LOLA_LANGUAGE LOLA_LEAD_MODEL \
     LOLA_LEAD_EFFORT LOLA_SPECIALIST_SESSION LOLA_SPECIALIST_CWD LOLA_SWEEP_SPECIALISTS \
     LOLA_DEFAULT_ACCOUNT LOLA_INBOX_DIR LOLA_ASSIGNMENT_DIR LOLA_NOTES_DIR LOLA_NOTES_STYLE \
     LOLA_QUEUE_FILE LOLA_SESSION_LOG_DIR LOLA_INSIGHT_DIR LOLA_HYGIENE_FILE LOLA_METHOD_LOG \

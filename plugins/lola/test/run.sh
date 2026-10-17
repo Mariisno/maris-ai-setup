@@ -193,8 +193,13 @@ if HOME="$nh" CLAUDE_CONFIG_DIR='' bash "$root/../../install.sh" >"$tmp/install.
   ok "install.sh: runs in an empty HOME"
   grep -qF '# The notes (~/.lola/notes)' "$nh/.claude/CLAUDE.md" && ok "install.sh: CLAUDE.md renders the notes path" \
     || bad "install.sh: CLAUDE.md notes path: $(grep -m1 '^# The notes' "$nh/.claude/CLAUDE.md")"
-  grep -q '{{NAME}}\|{{LANGUAGE}}\|{{NOTES_DIR}}\|{{LEAD}}' "$nh/.claude/CLAUDE.md" && bad "install.sh: a placeholder was left unrendered" \
-    || ok "install.sh: no config placeholder left unrendered"
+  grep -q '{{[A-Z_]*}}' "$nh/.claude/CLAUDE.md" && bad "install.sh: a placeholder was left unrendered: $(grep -o '{{[A-Z_]*}}' "$nh/.claude/CLAUDE.md" | sort -u | tr '\n' ' ')" \
+    || ok "install.sh: no placeholder left unrendered"
+  # The rendered file holds a literal "~/…" on purpose (install.sh writes the path with ~ for
+  # the person to read), so the test looks for exactly that text: not a path to expand.
+  # shellcheck disable=SC2088
+  grep -qF '~/.claude/scripts/memory-crossref.sh' "$nh/.claude/CLAUDE.md" && ok "install.sh: scripts are named by their full path" || bad "install.sh: script path not rendered"
+  grep -qF 'Pronouns: «your pronouns»' "$nh/.claude/CLAUDE.md" && ok "install.sh: empty pronouns leave a «…» to fill" || bad "install.sh: pronouns line: $(grep -m1 Pronouns "$nh/.claude/CLAUDE.md")"
   [ -L "$nh/.claude/statusline.sh" ] && [ -f "$nh/.lola/inbox/LOLA.md" ] && ok "install.sh: links and inbox in place" || bad "install.sh: links or inbox missing"
 else
   bad "install.sh: failed in an empty HOME ($(tail -1 "$tmp/install.log"))"

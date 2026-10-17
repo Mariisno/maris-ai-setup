@@ -69,7 +69,9 @@ and the config decide.
 ## Get started in five minutes
 
 **Requirements:** macOS or Linux · [tmux](https://github.com/tmux/tmux) · [jq](https://jqlang.org) ·
-Python 3 · Claude Code 2.1.284 or later.
+Python 3 · Claude Code 2.1.284 or later. Claude Code must already **trust the folder
+specialists start in** (`LOLA_SPECIALIST_CWD`, your home folder by default): run `claude` there
+once and accept the prompt, or the first `lola-spawn` stops at it and says so.
 
 1. **Clone and look before you leap:**
 
@@ -203,7 +205,7 @@ Bash and awk only, no tmux needed: scripts parse, menu and unsent-message detect
 label option, the identity hook, the queue script (including concurrent writes), the watch
 report against a fake tmux, `install.sh` in an empty HOME, the role catalogue's machine lines,
 and `lola-spawn --role` resolution (dry run). The same suite runs in GitHub Actions on
-Ubuntu and macOS, with ShellCheck over every script (`.github/workflows/test.yml`).
+Ubuntu and macOS, with ShellCheck over every script (`.github/workflows/ci.yml`).
 
 ## License
 
