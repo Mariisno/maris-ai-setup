@@ -39,7 +39,7 @@
 #
 #   lola-spawn review "MAJA · reviewer (LOLA)" claude-opus-5-5 high "You are MAJA …"
 #   lola-spawn --role ux/critic --domain work --name CILLA "Review the checkout flow …"
-#   LOLA_ACCOUNT=personal lola-spawn …   # start on another configured account
+#   LOLA_ACCOUNT=second lola-spawn …   # start on another configured account
 #   LOLA_CWD=~/code/app lola-spawn …     # start in another directory
 set -uo pipefail
 here="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

@@ -41,7 +41,7 @@ documents each key:
 | `LOLA_SPECIALIST_CAP` | `5` | how many specialists one lead may have alive at once |
 | `LOLA_LABEL_OPTION` | `@label` | the tmux option that holds a pane's label (its identity) |
 | `LOLA_DIG_GUARD_EVERY` | `4` | warn a lead after every N reading calls in a turn; `0` turns it off |
-| `LOLA_USAGE_DIR` | `~/.lola/usage` | where the status line writes one usage snapshot per account |
+| `LOLA_USAGE_DIR` | `~/.lola/usage` | where the status line writes its usage snapshot, for `quota.sh` |
 
 ## Safety
 

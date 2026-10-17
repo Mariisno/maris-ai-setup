@@ -52,10 +52,16 @@ You spend your time on judgment, decisions and taste.
 |---|---|---|
 | `plugins/lola/` | the method as a Claude Code plugin: `lead`, `specialist`, `watch`, `harvest`, `setup` skills · `lola-spawn`, `lola-send`, `lola-revive`, `lola-init`, `lola-watch-report` · the identity hook and the dig-guard hook · the **role catalogue** (`roles/`) · tests | installed as a plugin from this repository (it is its own marketplace) |
 | `skills/` | ten generic skills: `task-brief` · `sidequest` · `method-issue` · `testing` · `test-round` · `tired-mode` · `microcopy` · `notes-lookup` · `session-summary` · `user-stories` | symlinked into `~/.claude/skills/` |
-| `scripts/` | `quota.sh` (room per account) · `maintenance.sh` (updates and upkeep) · `memory-crossref.sh` (memories across folders) · `skill-audit.sh` (dead `[[links]]`) · `skill-usage.sh` (what is actually used) | symlinked into `~/.claude/scripts/` |
-| `statusline/statusline.sh` | greeting · project · branch · model + effort · account tag · meters for context, 5-hour and weekly limits · a cat | symlinked to `~/.claude/statusline.sh` |
+| `scripts/` | `quota.sh` (room left) · `maintenance.sh` (updates and upkeep) · `memory-crossref.sh` (memories across folders) · `skill-audit.sh` (dead `[[links]]`) · `skill-usage.sh` (what is actually used) | symlinked into `~/.claude/scripts/` |
+| `statusline/statusline.sh` | greeting · project · branch · model + effort · meters for context, 5-hour and weekly limits · Sussi the cat (`STATUSLINE_PERSONAL=0` leaves her out) | symlinked to `~/.claude/statusline.sh` |
 | `CLAUDE.md.template` | the structure of a global instructions file: about me · how to talk to me · ask first · rules for every session · notes · skills · scripts · git | rendered to `~/.claude/CLAUDE.md` if you have none |
 | `install.sh` | does the linking, with `--dry-run` and a backup of anything it replaces | — |
+
+![The status line: a pink greeting, the project, the branch, the model, Sussi the cat, and three pastel dot meters](docs/statusline.png)
+
+The status line's cat is Sussi, the cat my design system is named after. She is my
+signature; `STATUSLINE_PERSONAL=0` (in the environment or in `config.sh`) leaves her out.
+`statusline.sh --help` lists the options. The screenshot uses demo data.
 
 Everything reads **one config file**, `~/.lola/config.sh`. No path is hard-coded; `$HOME`
 and the config decide.
@@ -90,7 +96,7 @@ Python 3 · Claude Code 2.1.284 or later.
    ```
 
 4. **Tell it who you are.** Open `~/.lola/config.sh` and set your name, your language,
-   your leads and, if you have more than one, your Claude accounts. Then fill the «…» parts
+   and your leads. Then fill the «…» parts
    of `~/.claude/CLAUDE.md`. Add the `statusLine` snippet from `settings.example.json` to
    `~/.claude/settings.json` by hand.
 
@@ -111,7 +117,6 @@ documents every key. The ones you will touch:
 |---|---|
 | `LOLA_USER_NAME` · `LOLA_LANGUAGE` | how sessions address you; the language they write notes and reports in |
 | `LOLA_LEADS` | one lead per domain: `NAME\|domain\|tmux session\|working dir` |
-| `LOLA_ACCOUNTS` | one row per Claude account: `name\|config dir\|plan label`. The status line tags the pane with the account, and `quota.sh` shows the room on each |
 | `LOLA_NOTES_DIR` · `LOLA_NOTES_STYLE` | any folder of Markdown, or an Obsidian vault (`obsidian` writes `[[wikilinks]]`) |
 | `LOLA_ROLES_DIR` | the role catalogue; point it at a copy to edit roles and add your own domains |
 | `LOLA_SPECIALIST_CAP` | how many specialists one lead may run at once (default 5) |

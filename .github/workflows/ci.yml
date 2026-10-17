@@ -1,0 +1,23 @@
+# Runs ShellCheck (errors only), the status line smoke test and the Lola tests on every PR
+# and on push to main. jq, ShellCheck and locale-gen come with the Ubuntu runner. No secrets.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      # nb_NO for the smoke test's decimal-comma case (not on the runner by default).
+      - run: sudo locale-gen nb_NO.UTF-8
+      - run: shellcheck --severity=error statusline/statusline.sh statusline/test.sh scripts/quota.sh scripts/maintenance.sh
+      - run: bash statusline/test.sh
+      - run: bash plugins/lola/test/run.sh

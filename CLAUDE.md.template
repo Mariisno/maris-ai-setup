@@ -107,14 +107,8 @@ Editing files we're actively working on together is fine without asking.
 | What do we already know, across folders | `memory-crossref.sh [word]` |
 | After editing skills or memories | `skill-audit.sh` (broken `[[wikilinks]]`) |
 | Start of a day, or weekly | `maintenance.sh` |
-| Which account has room | `quota.sh` |
+| How much room is left | `quota.sh` |
 | Which skills are actually used | `skill-usage.sh` |
-
-# Accounts
-
-- «If you run more than one Claude account: which is which, what each is for, and the rule
-  for switching. The accounts themselves are rows in `~/.lola/config.sh`.»
-- Always say when you switch account.
 
 # Git and GitHub
 
