@@ -29,7 +29,7 @@ folder, queue file, notes folder, language). Scripts: `${CLAUDE_PLUGIN_ROOT}/bin
 |---|---|---|
 | **Assignment** (message, or a file for long ones) | lead → specialist | the five-part brief |
 | **Inbox file** (`<inbox dir>/<LEAD>.md`) | specialist → lead, lead → lead | three-line receipts; `LEAD:` messages between leads |
-| **The queue** (`Waiting on you.md`) | anyone → human | only what waits on the human's **answer**; whoever hit the gate writes the row, the lead checks it isn't a duplicate |
+| **The queue** (`Waiting on you.md`) | anyone → human | only what waits on the human's **answer**; whoever hit the gate adds the row with `lola-queue add` (locked, atomic; never by editing the file), the lead checks it isn't a duplicate and closes answered rows with `lola-queue done <n> "<answer>"` |
 | **Notes** | everyone | full reports, decisions, insight, the daily session log |
 
 ## The five-part brief

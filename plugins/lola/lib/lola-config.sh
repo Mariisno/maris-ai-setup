@@ -140,6 +140,21 @@ lola_shows_menu() {
     }'
 }
 
+# lola_lock <name> [seconds] — take <LOLA_HOME>/.<name>.lock, a directory (mkdir is atomic on
+# every filesystem). A lock older than two minutes is a crash's leftover and is taken over.
+# Waits up to [seconds] (default 60); fails with 1 when the lock is still held. Pair with
+# lola_unlock <name>, and put it in a trap so a failing script never leaves the lock behind.
+lola_lock() {
+  local lock="$LOLA_HOME/.$1.lock" wait="${2:-60}" i=0
+  mkdir -p "$LOLA_HOME" 2>/dev/null
+  while ! mkdir "$lock" 2>/dev/null; do
+    if [ -n "$(find "$lock" -maxdepth 0 -mmin +2 2>/dev/null)" ]; then rmdir "$lock" 2>/dev/null; continue; fi
+    i=$((i+1)); [ "$i" -lt "$wait" ] || return 1
+    sleep 1
+  done
+}
+lola_unlock() { rmdir "$LOLA_HOME/.$1.lock" 2>/dev/null; }
+
 # lola_unsent_text — reads a pane capture on stdin; prints what stands typed but unsent in
 # the composer (the «❯» line right under a ─ rule), or nothing. «/exit» counts: a specialist
 # that typed /exit and never pressed Enter is finished and still alive. The dim placeholder

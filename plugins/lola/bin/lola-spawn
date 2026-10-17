@@ -133,15 +133,9 @@ fi
 
 # --- The cap, under a lock --------------------------------------------------------------
 CAP="${LOLA_CAP:-$LOLA_SPECIALIST_CAP}"
-lock="$LOLA_HOME/.spawn.lock"; mkdir -p "$LOLA_HOME"
-release() { rmdir "$lock" 2>/dev/null; }
+release() { lola_unlock spawn; }
 if [ -z "$CAP_CHECK" ] && [ -z "$DRY" ]; then
-  i=0
-  while ! mkdir "$lock" 2>/dev/null; do
-    if [ -n "$(find "$lock" -maxdepth 0 -mmin +2 2>/dev/null)" ]; then rmdir "$lock" 2>/dev/null; continue; fi
-    i=$((i+1)); [ "$i" -lt 60 ] || { echo "ERROR: another lola-spawn holds the lock ($lock). Nothing started."; exit 1; }
-    sleep 1
-  done
+  lola_lock spawn || { echo "ERROR: another lola-spawn holds the lock ($LOLA_HOME/.spawn.lock). Nothing started."; exit 1; }
   trap release EXIT
 fi
 alive_list() { # panes in the specialist session that count against this lead's cap
