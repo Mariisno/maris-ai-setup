@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# Part of Mari's AI Setup by Mari Svennevik Notland · https://github.com/Mariisno/maris-ai-setup · MIT License
+# lola-inbox-rotate — start a lead's inbox afresh without rewriting a file anyone is watching.
+#
+#   lola-inbox-rotate <LEAD>        rotate one inbox
+#   lola-inbox-rotate --all         rotate every inbox over LOLA_INBOX_WARN_KB
+#   lola-inbox-rotate --dry-run …   say what would happen
+#
+# Inboxes are append-only and leads watch them with a Monitor (tail -F). Editing an inbox in
+# place, to "archive the old lines", makes every monitor replay the whole file: the lead
+# wakes to dozens of old receipts as if they were new. So an inbox is never edited: the
+# file is MOVED to <inbox dir>/archive/<LEAD>-<stamp>.md, and a new one is created from the
+# template with one pointer line to the archive. The move is one rename; a receipt appended
+# in the same instant lands in the archive, never in the void. Under the Lola lock.
+#
+# A lead whose inbox was rotated must re-arm its Monitor: tail -F follows the name and picks
+# the new file up, but says nothing about the rotation itself, so the pointer line is there
+# to be read. Nothing is deleted.
+set -uo pipefail
+here="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../lib/lola-config.sh
+. "$here/../lib/lola-config.sh"
+
+DRY=""; ALL=""; leads=()
+for a in "$@"; do case "$a" in --dry-run) DRY=1 ;; --all) ALL=1 ;; -*) echo "unknown option: $a"; exit 2 ;; *) leads+=("$a") ;; esac; done
+if [ -n "$ALL" ]; then
+  while IFS= read -r n; do
+    f="$LOLA_INBOX_DIR/$n.md"; [ -f "$f" ] || continue
+    [ $(( $(wc -c < "$f") / 1024 )) -gt "$LOLA_INBOX_WARN_KB" ] && leads+=("$n")
+  done < <(lola_lead_names)
+  [ ${#leads[@]} -gt 0 ] || { echo "No inbox over $LOLA_INBOX_WARN_KB KB. Nothing rotated."; exit 0; }
+fi
+[ ${#leads[@]} -gt 0 ] || { sed -n '3,7p' "$0" >&2; exit 2; }
+
+stamp="$(date +%Y%m%d-%H%M)"; rc=0
+for lead in "${leads[@]}"; do
+  f="$LOLA_INBOX_DIR/$lead.md"
+  if [ ! -f "$f" ]; then echo "SKIP: no inbox $f"; rc=1; continue; fi
+  kb=$(( $(wc -c < "$f") / 1024 )); lines=$(wc -l < "$f" | tr -d ' ')
+  arch="$LOLA_INBOX_DIR/archive/$lead-$stamp.md"; n=2
+  while [ -e "$arch" ]; do arch="$LOLA_INBOX_DIR/archive/$lead-$stamp-$n.md"; n=$((n+1)); done
+  if [ -n "$DRY" ]; then
+    echo "DRY: $f ($kb KB, $lines lines) → $arch, then a new $f from the template"; continue
+  fi
+  lola_lock inbox-rotate 30 || { echo "ERROR: the rotate lock is held. $f untouched."; rc=1; continue; }
+  mkdir -p "$LOLA_INBOX_DIR/archive" && mv "$f" "$arch" && {
+    cp "$LOLA_ROOT/templates/inbox.md" "$f"
+    printf '\nROTATED %s: %s lines up to now are in %s. Leads: re-arm your Monitor on this file.\n' \
+      "$(date '+%Y-%m-%d %H:%M')" "$lines" "$arch" >> "$f"
+  }
+  lola_unlock inbox-rotate
+  if [ -f "$arch" ] && [ -f "$f" ]; then
+    echo "OK: $lead — $kb KB, $lines lines moved to $arch; new inbox at $f. Re-arm any Monitor on it."
+  else
+    echo "ERROR: rotation of $f did not complete (archive: $arch)."; rc=1
+  fi
+done
+exit "$rc"

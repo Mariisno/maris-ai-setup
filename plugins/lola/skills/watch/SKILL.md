@@ -56,6 +56,10 @@ Configuration comes from `~/.lola/config.sh` (see the `setup` skill).
    pane id, how long it has stood there, and what the menu asks (first lines of the capture)
    in that lead's message in the same round. The lead answers a read-only plan approval
    itself; everything else goes to the human.
+   - **An inbox over `LOLA_INBOX_WARN_KB`** (the report marks it ⚠️): rotate it with
+     `bash "${CLAUDE_PLUGIN_ROOT}/bin/lola-inbox-rotate" <LEAD>`. Nothing is deleted: the file
+     moves to `archive/` and a fresh one starts with a pointer line. Say so in that lead's
+     message, because its Monitor must be re-armed. Never edit an inbox in place.
    - **Stamp** the rows you actually ran in the hygiene table, if there is one.
 4. **Route the rest** as one combined message per lead, and only when there are findings:
    append to that lead's inbox in the inbox folder, prefixed `WATCH <date> <time>:`. Route by

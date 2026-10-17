@@ -150,6 +150,19 @@ awk '/^## Done/{exit} {print}' "$qh/notes/Waiting on you.md" > "$qh/notes/nodone
 before=$(queue list | grep -c .); queue "done" 1 "x" >/dev/null 2>&1; rc=$?
 [ "$rc" -eq 1 ] && [ "$(queue list | grep -c .)" = "$before" ] && ok "queue: done without a Done table is refused and loses nothing" || bad "queue done without Done table: rc=$rc rows $before → $(queue list | grep -c .)"
 
+# lola-inbox-rotate: the old file moves whole to archive/, the new one is the template plus a
+# pointer line, a dry run changes nothing, an unknown lead is skipped, no lock is left.
+rh="$tmp/rh"; mkdir -p "$rh/inbox"; printf 'old receipt 1\nold receipt 2\n' > "$rh/inbox/LOLA.md"
+rotate() { LOLA_CONFIG=/dev/null LOLA_HOME="$rh" LOLA_INBOX_DIR="$rh/inbox" bash "$root/bin/lola-inbox-rotate" "$@"; }
+rotate --dry-run LOLA >/dev/null && [ "$(cat "$rh/inbox/LOLA.md")" = "$(printf 'old receipt 1\nold receipt 2')" ] && ok "inbox-rotate: --dry-run changes nothing" || bad "inbox-rotate --dry-run touched the inbox"
+rotate LOLA >/dev/null && ok "inbox-rotate: returns 0" || bad "inbox-rotate failed"
+arch=$(ls "$rh"/inbox/archive/LOLA-*.md 2>/dev/null | head -1)
+[ -n "$arch" ] && grep -q 'old receipt 2' "$arch" && ok "inbox-rotate: the old lines are in archive/" || bad "inbox-rotate: no archive with the old lines"
+grep -q '^# Inbox' "$rh/inbox/LOLA.md" && grep -q "^ROTATED .*2 lines.*$arch" "$rh/inbox/LOLA.md" && ! grep -q 'old receipt' "$rh/inbox/LOLA.md" && ok "inbox-rotate: the new inbox is the template plus a pointer line" || bad "inbox-rotate new inbox: $(cat "$rh/inbox/LOLA.md")"
+rotate NOPE >/dev/null 2>&1; [ $? -eq 1 ] && ok "inbox-rotate: an unknown lead is skipped with exit 1" || bad "inbox-rotate: unknown lead accepted"
+[ -d "$rh/.inbox-rotate.lock" ] && bad "inbox-rotate: a lock was left behind" || ok "inbox-rotate: no lock left behind"
+[ "$(rotate --all)" = "No inbox over 60 KB. Nothing rotated." ] && ok "inbox-rotate: --all rotates nothing under the limit" || bad "inbox-rotate --all: $(rotate --all)"
+
 # Role catalogue: every role and domain file carries a complete machine line, and
 # lola-spawn --role resolves label, model, effort and lead from it without touching tmux.
 for f in "$root"/roles/*/*.md; do
