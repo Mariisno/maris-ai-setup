@@ -145,6 +145,10 @@ for i in $(seq 1 20); do queue add "Row $i" "ok" "/tmp/$i" T >/dev/null & done; 
 [ "$(queue list | grep -c 'Row ')" = 20 ] && ok "queue: 20 concurrent adds, 20 rows (the lock holds)" || bad "queue concurrency: $(queue list | grep -c 'Row ') of 20 rows survived"
 [ -d "$qh/.queue.lock" ] && bad "queue: a lock was left behind" || ok "queue: no lock left behind"
 queue add "only" "three" "args" 2>/dev/null; [ $? -eq 2 ] && ok "queue: wrong arity is refused" || bad "queue: wrong arity accepted"
+# done with no «## Done» table: refused, and the open row is still there.
+awk '/^## Done/{exit} {print}' "$qh/notes/Waiting on you.md" > "$qh/notes/nodone.md" && mv "$qh/notes/nodone.md" "$qh/notes/Waiting on you.md"
+before=$(queue list | grep -c .); queue "done" 1 "x" >/dev/null 2>&1; rc=$?
+[ "$rc" -eq 1 ] && [ "$(queue list | grep -c .)" = "$before" ] && ok "queue: done without a Done table is refused and loses nothing" || bad "queue done without Done table: rc=$rc rows $before → $(queue list | grep -c .)"
 
 # Role catalogue: every role and domain file carries a complete machine line, and
 # lola-spawn --role resolves label, model, effort and lead from it without touching tmux.
@@ -178,6 +182,15 @@ if HOME="$nh" CLAUDE_CONFIG_DIR='' bash "$root/../../install.sh" >"$tmp/install.
 else
   bad "install.sh: failed in an empty HOME ($(tail -1 "$tmp/install.log"))"
 fi
+# --uninstall removes our links and nothing else; a foreign link in skills/ survives.
+ln -s /nonexistent/other-skill "$nh/.claude/skills/other-skill"
+HOME="$nh" CLAUDE_CONFIG_DIR='' bash "$root/../../install.sh" --uninstall --dry-run >"$tmp/un.log" 2>&1
+[ -L "$nh/.claude/statusline.sh" ] && ok "install.sh --uninstall --dry-run: changes nothing" || bad "install.sh --uninstall --dry-run removed a link"
+HOME="$nh" CLAUDE_CONFIG_DIR='' bash "$root/../../install.sh" --uninstall >"$tmp/un.log" 2>&1
+if [ ! -e "$nh/.claude/statusline.sh" ] && [ ! -e "$nh/.claude/skills/task-brief" ] && [ ! -e "$nh/.claude/scripts/quota.sh" ]; then ok "install.sh --uninstall: our links are gone"; else bad "install.sh --uninstall left links: $(ls "$nh/.claude/skills" "$nh/.claude/scripts")"; fi
+[ -L "$nh/.claude/skills/other-skill" ] && ok "install.sh --uninstall: a foreign link is kept" || bad "install.sh --uninstall removed a foreign link"
+[ -f "$nh/.claude/CLAUDE.md" ] && [ -f "$nh/.lola/config.sh" ] && ok "install.sh --uninstall: CLAUDE.md and ~/.lola are kept" || bad "install.sh --uninstall touched CLAUDE.md or ~/.lola"
+grep -q 'claude plugin uninstall lola@maris-ai-setup' "$tmp/un.log" && ok "install.sh --uninstall: prints the plugin removal" || bad "install.sh --uninstall: no plugin removal printed"
 
 echo; echo "$((n - fail))/$n passed"
 [ "$fail" -eq 0 ]

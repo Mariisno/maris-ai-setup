@@ -105,6 +105,21 @@ Python 3 · Claude Code 2.1.284 or later.
    specialist with `lola-spawn --role …`, and a three-line receipt appears in
    `~/.lola/inbox/LOLA.md` when the work is done.
 
+**If a step fails**, the script stops and names the step. What the earlier steps linked
+stays; fix the cause (usually a missing tool from the requirements) and run it again: links
+that are already right are kept, nothing is linked twice.
+
+**Uninstall:** `./install.sh --uninstall` removes only the symlinks that point into this
+repository, and leaves `CLAUDE.md`, `~/.lola` (your config, inboxes and notes) and the backup
+folders alone. Then, by hand:
+
+```sh
+claude plugin uninstall lola@maris-ai-setup
+claude plugin marketplace remove maris-ai-setup
+```
+
+and remove the `statusLine` entry from `settings.json`. `--dry-run` works here too.
+
 A second machine is steps 1–3 again; the config file and your notes are the only things to
 carry over.
 

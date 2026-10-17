@@ -3,6 +3,7 @@
 # install.sh — link this repository into a Claude Code config folder.
 #
 #   ./install.sh [--dry-run] [--target DIR]
+#   ./install.sh --uninstall [--dry-run] [--target DIR]
 #
 # What it does, in order:
 #   1. creates ~/.lola/config.sh (the ONE config file) if missing, via the plugin's lola-init
@@ -16,12 +17,20 @@
 #
 # <target> is $CLAUDE_CONFIG_DIR if set, else ~/.claude. Anything it would replace is moved
 # to <target>/backup-maris-ai-setup-<stamp>/ first. --dry-run prints every step and changes nothing.
-set -euo pipefail
+#
+# If a step fails, the script stops and says which step; what the earlier steps linked stays
+# in place, and running it again is safe (links that are already right are kept).
+#
+# --uninstall removes only the symlinks in <target> that point into this repository (skills,
+# scripts, the status line). It leaves CLAUDE.md, ~/.lola (your config, inboxes, notes) and
+# the backup folders alone, and prints the two `claude plugin` commands that remove the plugin.
+set -Eeuo pipefail
 repo="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-target="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"; dry=""
+target="${CLAUDE_CONFIG_DIR:-$HOME/.claude}"; dry=""; mode="install"
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) dry=1; shift ;;
+    --uninstall) mode="uninstall"; shift ;;
     --target) target="${2:?--target needs a directory}"; shift 2 ;;
     -h|--help) awk 'NR == 1 { next } /^#/ { sub(/^# ?/, ""); print; next } { exit }' "$0"; exit 0 ;;
     *) echo "unknown option: $1"; exit 2 ;;
@@ -31,6 +40,25 @@ target="${target%/}"
 stamp="$(date +%Y%m%d-%H%M%S)"; backup="$target/backup-maris-ai-setup-$stamp"
 run() { if [ -n "$dry" ]; then echo "  DRY: $*"; else "$@"; fi; }
 say() { printf '%s\n' "$*"; }
+step="start"
+trap 'say; say "install.sh stopped during step «${step}» (exit $?). What earlier steps linked is still in place; fix the cause and run it again: links that are already right are kept."' ERR
+
+# --- uninstall: only our own symlinks ---------------------------------------------------
+if [ "$mode" = "uninstall" ]; then
+  say "maris-ai-setup ← $target${dry:+  (dry run: nothing is changed)}"
+  n=0
+  for p in "$target"/skills/* "$target"/scripts/* "$target/statusline.sh"; do
+    [ -L "$p" ] || continue
+    case "$(readlink "$p")" in "$repo"/*) ;; *) continue ;; esac
+    run rm "$p"; say "  unlinked   ${p#"$HOME"/}"; n=$((n+1))
+  done
+  say "  $n link(s) removed. Kept: $target/CLAUDE.md, ~/.lola (config, inboxes, notes), backup folders."
+  say; say "The plugin (run these yourself; they write to your plugin settings):"
+  say "     claude plugin uninstall lola@maris-ai-setup"
+  say "     claude plugin marketplace remove maris-ai-setup"
+  say "Then remove the statusLine entry from $target/settings.json by hand, and restart Claude Code."
+  exit 0
+fi
 
 # move <path> aside before replacing it, unless it already is the link we want
 park() { # <path> <wanted link target>
@@ -57,7 +85,7 @@ say "Mari's AI Setup by Mari Svennevik Notland · github.com/Mariisno/maris-ai-s
 say "→ $target${dry:+  (dry run: nothing is changed)}"
 [ -n "$dry" ] || mkdir -p "$target"
 
-say; say "1 · config"
+step="1 · config"; say; say "$step"
 if [ -n "$dry" ]; then
   say "  DRY: bash plugins/lola/bin/lola-init   (creates ~/.lola/config.sh, inboxes, queue; never overwrites)"
 else
@@ -65,19 +93,19 @@ else
 fi
 LOLA_HOME="${LOLA_HOME:-$HOME/.lola}"; LOLA_CONFIG="${LOLA_CONFIG:-$LOLA_HOME/config.sh}"
 
-say; say "2 · skills"
+step="2 · skills"; say; say "$step"
 for d in "$repo"/skills/*/; do
   n="$(basename "$d")"; [ -f "$d/SKILL.md" ] || continue
   link "${d%/}" "$target/skills/$n"
 done
 
-say; say "3 · scripts"
+step="3 · scripts"; say; say "$step"
 for f in "$repo"/scripts/*.sh; do link "$f" "$target/scripts/$(basename "$f")"; done
 
-say; say "4 · status line"
+step="4 · status line"; say; say "$step"
 link "$repo/statusline/statusline.sh" "$target/statusline.sh"
 
-say; say "5 · CLAUDE.md"
+step="5 · CLAUDE.md"; say; say "$step"
 render() { # fill the placeholders the config knows; leave the rest for the person
   local name="you" lang="English" notes="$HOME/.lola/notes" lead="LOLA"
   if [ -f "$LOLA_CONFIG" ]; then
