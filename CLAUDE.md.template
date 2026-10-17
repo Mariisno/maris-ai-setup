@@ -1,7 +1,7 @@
 # About {{NAME}}
 
-<!-- Rendered by install.sh from ~/.lola/config.sh: {{NAME}}, {{LANGUAGE}}, {{NOTES_DIR}} and
-     {{LEAD}} are filled in. Everything in «» is yours to write; delete what doesn't apply.
+<!-- Rendered by install.sh from ~/.lola/config.sh: {{NAME}}, {{LANGUAGE}}, {{NOTES_DIR}}, {{LEAD}}
+     and the script folder {{SCRIPTS}} are filled in. Everything in «» is yours to write; delete what doesn't apply.
      Keep this file about *you*: workflow, rules, who you are. The harness already carries the
      model's general tuning, so don't repeat it here. -->
 
@@ -57,7 +57,7 @@ Editing files we're actively working on together is fine without asking.
   numbers, people, APIs or board values; «almost certain» gets verified. Inference is marked
   `[assessment]`. No claim without a source.
 - **Research over guessing on best practice** (model and effort, agent patterns, Claude Code
-  mechanics, tools): memories (`memory-crossref.sh`) → the notes → the docs → the web,
+  mechanics, tools): memories (`{{SCRIPTS}}/memory-crossref.sh`) → the notes → the docs → the web,
   BEFORE you recommend.
 - **The lead doesn't dig.** Code digging, repository sweeps, long threads, source checks
   and analyses go to a named specialist pane (model and effort verified in its banner before
@@ -77,7 +77,7 @@ Editing files we're actively working on together is fine without asking.
 - **Memories are scoped per folder.** Claude Code loads only
   `<config dir>/projects/<cwd-slug>/memory/`. A fact that is true across folders (people,
   roles, routing, tool paths) belongs in **this file** or the canonical note, never only in
-  a project memory. Before concluding something «isn't noted»: `memory-crossref.sh <word>`.
+  a project memory. Before concluding something «isn't noted»: `{{SCRIPTS}}/memory-crossref.sh <word>`.
 
 # The notes ({{NOTES_DIR}})
 
@@ -100,7 +100,7 @@ Editing files we're actively working on together is fine without asking.
 | I'm tired | `tired-mode` |
 | Lead and specialist sessions | the `lola` plugin: `lead`, `specialist`, `watch`, `harvest`, `setup` |
 
-# Helper scripts (`<config dir>/scripts/`)
+# Helper scripts (in `{{SCRIPTS}}/`, not on PATH: call them by that path)
 
 | When | Script |
 |---|---|

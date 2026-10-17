@@ -107,34 +107,36 @@ link "$repo/statusline/statusline.sh" "$target/statusline.sh"
 
 step="5 · CLAUDE.md"; say; say "$step"
 render() { # fill the placeholders the config knows; leave the rest for the person
-  local name="you" lang="English" notes="$HOME/.lola/notes" lead="LOLA"
+  local name="you" lang="English" notes="$HOME/.lola/notes" lead="LOLA" pron=""
   if [ -f "$LOLA_CONFIG" ]; then
     # Read the values through the plugin's own loader, never by sourcing the config bare:
     # the config says "$LOLA_HOME/notes", and only the loader sets LOLA_HOME and the defaults.
-    { IFS= read -r name; IFS= read -r lang; IFS= read -r notes; IFS= read -r lead; } < <(
+    { IFS= read -r name; IFS= read -r lang; IFS= read -r notes; IFS= read -r lead; IFS= read -r pron; } < <(
       LOLA_HOME="$LOLA_HOME" LOLA_CONFIG="$LOLA_CONFIG" bash -c '
         . "$1/plugins/lola/lib/lola-config.sh" 2>/dev/null
-        printf "%s\n" "$LOLA_USER_NAME" "$LOLA_LANGUAGE" "$LOLA_NOTES_DIR" "${LOLA_LEADS[0]%%|*}"' _ "$repo"
+        printf "%s\n" "$LOLA_USER_NAME" "$LOLA_LANGUAGE" "$LOLA_NOTES_DIR" "${LOLA_LEADS[0]%%|*}" "${LOLA_USER_PRONOUNS:-}"' _ "$repo"
     )
   fi
+  # Scripts are linked into <target>/scripts and are not on PATH: CLAUDE.md names the full path.
+  local tilde="~" scripts; scripts="${target/#"$HOME"/$tilde}/scripts"
   # ENVIRON, not -v: awk would read backslashes in the values as escapes
   # "~" from a variable: bash 4.3+ tilde-expands a literal ~ in the replacement back to $HOME.
-  local tilde="~"
-  R_NAME="$name" R_LANG="$lang" R_NOTES="${notes/#"$HOME"/$tilde}" R_LEAD="${lead:-LOLA}" awk '
+  R_NAME="$name" R_LANG="$lang" R_NOTES="${notes/#"$HOME"/$tilde}" R_LEAD="${lead:-LOLA}" R_PRON="${pron:-«your pronouns»}" R_SCRIPTS="$scripts" awk '
     function sub_all(s, key, val,   i, out) {
       out = ""
       while ((i = index(s, key)) > 0) { out = out substr(s, 1, i - 1) val; s = substr(s, i + length(key)) }
       return out s
     }
     { $0 = sub_all($0, "{{NAME}}", ENVIRON["R_NAME"]); $0 = sub_all($0, "{{LANGUAGE}}", ENVIRON["R_LANG"])
-      $0 = sub_all($0, "{{NOTES_DIR}}", ENVIRON["R_NOTES"]); $0 = sub_all($0, "{{LEAD}}", ENVIRON["R_LEAD"]); print }
+      $0 = sub_all($0, "{{NOTES_DIR}}", ENVIRON["R_NOTES"]); $0 = sub_all($0, "{{LEAD}}", ENVIRON["R_LEAD"])
+      $0 = sub_all($0, "{{PRONOUNS}}", ENVIRON["R_PRON"]); $0 = sub_all($0, "{{SCRIPTS}}", ENVIRON["R_SCRIPTS"]); print }
   ' "$repo/CLAUDE.md.template"
 }
 if [ -e "$target/CLAUDE.md" ]; then
   say "  kept       $target/CLAUDE.md (yours). A fresh render is at CLAUDE.md.from-template; merge what you want."
   [ -n "$dry" ] || render > "$target/CLAUDE.md.from-template"
 else
-  if [ -n "$dry" ]; then say "  DRY: render CLAUDE.md.template → $target/CLAUDE.md"; else render > "$target/CLAUDE.md"; say "  wrote      $target/CLAUDE.md — fill in the «…» parts and {{PRONOUNS}}"; fi
+  if [ -n "$dry" ]; then say "  DRY: render CLAUDE.md.template → $target/CLAUDE.md"; else render > "$target/CLAUDE.md"; say "  wrote      $target/CLAUDE.md — fill in the «…» parts"; fi
 fi
 
 say; say "6 · the Lola plugin (run these yourself; they write to your plugin settings):"
