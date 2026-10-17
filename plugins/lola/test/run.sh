@@ -101,6 +101,36 @@ printf 'LOLA_LEADS=("WEB|the web app|web|/tmp")\n' > "$tmp/leads.sh"
 out=$(CFG="$tmp/leads.sh" start "WEB · lead" sid-web); [[ "$out" == *"lead for: the web app"* ]] && ok "identity: the domain comes from LOLA_LEADS" || bad "identity domain: $out"
 if grep -v '^[[:space:]]*#' "$root/bin/lola-revive" | grep -q -- '--continue'; then bad "revive still uses --continue"; else ok "revive: no --continue, only --resume by saved id"; fi
 
+# lola-watch-report, end to end with a fake tmux that shows one idle specialist pane, and a
+# fake session registry that says it is claude. Without a receipt in its lead's inbox the pane
+# is flagged; with one it is not; WATCH panes are never asked for receipts.
+wr="$tmp/wr"; mkdir -p "$wr/bin" "$wr/home/.claude/sessions" "$wr/home/.lola/inbox"
+cat > "$wr/bin/tmux" <<'TMUX'
+#!/usr/bin/env bash
+case "$1" in
+  list-panes)   printf '%%5\tengine-room\tcritic-work\t%s\tclaude\t0\t1\n' "$FAKE_LABEL" ;;
+  capture-pane) cat "$FAKE_CAP" ;;
+esac
+TMUX
+chmod +x "$wr/bin/tmux"
+printf '{"pid":%s,"tmux":"engine-room:@1.%%5","version":"9.9.9","status":"idle","statusUpdatedAt":%s}\n' "$$" "$(( ($(date +%s) - 20*60) * 1000 ))" > "$wr/home/.claude/sessions/1.json"
+report() { # <label> → the Panes row of the report
+  PATH="$wr/bin:$PATH" HOME="$wr/home" LOLA_CONFIG=/dev/null LOLA_HOME="$wr/home/.lola" FAKE_LABEL="$1" FAKE_CAP="$root/test/fixtures/prompt-quoted-hints.txt" \
+    bash "$root/bin/lola-watch-report" --no-gh 2>/dev/null | grep -F '| `%5`'
+}
+: > "$wr/home/.lola/inbox/LOLA.md"
+row=$(report "CILLA · CRITIC · Work (LOLA)")
+[[ "$row" == *"no receipt from CILLA in LOLA.md"* ]] && ok "watch-report: idle specialist without a receipt is flagged" || bad "watch-report no-receipt: $row"
+printf 'CILLA %s: reviewed the flow\nResult: three findings\nNeeds: nothing\n' "$(date +%Y-%m-%d)" >> "$wr/home/.lola/inbox/LOLA.md"
+row=$(report "CILLA · CRITIC · Work (LOLA)")
+[[ "$row" != *"no receipt"* ]] && ok "watch-report: a receipt dated today clears the flag" || bad "watch-report receipt not seen: $row"
+row=$(report "WATCH · hygiene (LOLA)")
+[[ "$row" != *"no receipt"* ]] && ok "watch-report: WATCH is never asked for a receipt" || bad "watch-report flagged WATCH: $row"
+row=$(FAKE_CAP="$root/test/fixtures/menu-permission.txt" PATH="$wr/bin:$PATH" HOME="$wr/home" LOLA_CONFIG=/dev/null LOLA_HOME="$wr/home/.lola" FAKE_LABEL="TORE · FRONTEND · Work (LOLA)" bash "$root/bin/lola-watch-report" --no-gh 2>/dev/null | grep -F '| `%5`')
+[[ "$row" == *"in a menu or prompt"* && "$row" != *"no receipt"* ]] && ok "watch-report: a pane in a menu is flagged as a menu, not as missing a receipt" || bad "watch-report menu row: $row"
+row=$(FAKE_CAP="$root/test/fixtures/prompt-unsent-list.txt" PATH="$wr/bin:$PATH" HOME="$wr/home" LOLA_CONFIG=/dev/null LOLA_HOME="$wr/home/.lola" FAKE_LABEL="TORE · FRONTEND · Work (LOLA)" bash "$root/bin/lola-watch-report" --no-gh 2>/dev/null | grep -F '| `%5`')
+[[ "$row" == *"unsent message: «1. do this»"* ]] && ok "watch-report: an unsent message is flagged with its text" || bad "watch-report unsent row: $row"
+
 # Role catalogue: every role and domain file carries a complete machine line, and
 # lola-spawn --role resolves label, model, effort and lead from it without touching tmux.
 for f in "$root"/roles/*/*.md; do
