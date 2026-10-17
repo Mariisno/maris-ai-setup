@@ -81,11 +81,13 @@ say; say "5 · CLAUDE.md"
 render() { # fill the placeholders the config knows; leave the rest for the person
   local name="you" lang="English" notes="$HOME/.lola/notes" lead="LOLA"
   if [ -f "$LOLA_CONFIG" ]; then
-    # shellcheck source=/dev/null
-    name="$(bash -c ". '$LOLA_CONFIG' 2>/dev/null; printf '%s' \"\${LOLA_USER_NAME:-you}\"")"
-    lang="$(bash -c ". '$LOLA_CONFIG' 2>/dev/null; printf '%s' \"\${LOLA_LANGUAGE:-English}\"")"
-    notes="$(bash -c ". '$LOLA_CONFIG' 2>/dev/null; printf '%s' \"\${LOLA_NOTES_DIR:-$HOME/.lola/notes}\"")"
-    lead="$(bash -c ". '$LOLA_CONFIG' 2>/dev/null; printf '%s' \"\${LOLA_LEADS[0]%%|*}\"")"
+    # Read the values through the plugin's own loader, never by sourcing the config bare:
+    # the config says "$LOLA_HOME/notes", and only the loader sets LOLA_HOME and the defaults.
+    { IFS= read -r name; IFS= read -r lang; IFS= read -r notes; IFS= read -r lead; } < <(
+      LOLA_HOME="$LOLA_HOME" LOLA_CONFIG="$LOLA_CONFIG" bash -c '
+        . "$1/plugins/lola/lib/lola-config.sh" 2>/dev/null
+        printf "%s\n" "$LOLA_USER_NAME" "$LOLA_LANGUAGE" "$LOLA_NOTES_DIR" "${LOLA_LEADS[0]%%|*}"' _ "$repo"
+    )
   fi
   # ENVIRON, not -v: awk would read backslashes in the values as escapes
   R_NAME="$name" R_LANG="$lang" R_NOTES="${notes/#$HOME/~}" R_LEAD="${lead:-LOLA}" awk '

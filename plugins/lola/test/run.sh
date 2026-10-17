@@ -84,5 +84,19 @@ spawn --role ux/ui --domain nope >/dev/null; [ $? -eq 2 ] && ok "spawn --role: u
 out=$(spawn review "MAJA · reviewer (LOLA)" claude-opus-5-5 high "hi"); [[ "$out" == *"label 'MAJA · reviewer (LOLA)'"* ]] && ok "spawn: positional form still works" || bad "spawn positional: $out"
 [ -e "$tmp/home/.spawn.lock" ] && bad "spawn --dry-run left a lock" || ok "spawn --dry-run takes no lock"
 
+# install.sh in an empty HOME: the rendered CLAUDE.md must carry the real notes path. The
+# config says "$LOLA_HOME/notes"; read bare, without the loader, that once rendered as "/notes".
+nh="$tmp/newuser"; mkdir -p "$nh"
+if HOME="$nh" CLAUDE_CONFIG_DIR= bash "$root/../../install.sh" >"$tmp/install.log" 2>&1; then
+  ok "install.sh: runs in an empty HOME"
+  grep -qF '# The notes (~/.lola/notes)' "$nh/.claude/CLAUDE.md" && ok "install.sh: CLAUDE.md renders the notes path" \
+    || bad "install.sh: CLAUDE.md notes path: $(grep -m1 '^# The notes' "$nh/.claude/CLAUDE.md")"
+  grep -q '{{NAME}}\|{{LANGUAGE}}\|{{NOTES_DIR}}\|{{LEAD}}' "$nh/.claude/CLAUDE.md" && bad "install.sh: a placeholder was left unrendered" \
+    || ok "install.sh: no config placeholder left unrendered"
+  [ -L "$nh/.claude/statusline.sh" ] && [ -f "$nh/.lola/inbox/LOLA.md" ] && ok "install.sh: links and inbox in place" || bad "install.sh: links or inbox missing"
+else
+  bad "install.sh: failed in an empty HOME ($(tail -1 "$tmp/install.log"))"
+fi
+
 echo; echo "$((n - fail))/$n passed"
 [ "$fail" -eq 0 ]
