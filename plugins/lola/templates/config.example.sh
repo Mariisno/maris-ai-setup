@@ -26,7 +26,9 @@ LOLA_LEAD_EFFORT="high"
 # All specialist panes live in this tmux session. It is detached on purpose: you look at
 # leads, not specialists.
 LOLA_SPECIALIST_SESSION="engine-room"
-# Working directory new specialist panes start in.
+# Working directory new specialist panes start in. Not $HOME: Claude Code does not remember
+# that you trust your home folder, so every pane would stop at "Do you trust this folder?".
+# Use a project folder (or the one that holds your projects) and open claude there once.
 LOLA_SPECIALIST_CWD="$HOME"
 # Move specialist windows that ended up in a lead's session over to the specialist
 # session when `lola-revive` runs (1 = on, 0 = off).

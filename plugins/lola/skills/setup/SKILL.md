@@ -22,6 +22,10 @@ and skills read from there; nothing else needs editing.
    - **Leads:** one is enough to start. If they work in clearly separate domains (a product, a
      codebase, a client), offer one lead per domain. Each row is
      `"NAME|domain|tmux session|working directory"`.
+   - **Specialist folder:** `LOLA_SPECIALIST_CWD`, where spawned panes start. Propose a
+     project folder (or the folder that holds their projects), never the home folder: Claude
+     Code doesn't remember folder trust for `$HOME`, so every pane would stop at "Do you trust
+     this folder?". Have them run `claude` in that folder once and answer yes.
    - **Notes:** keep the default plain folder, or point `LOLA_NOTES_DIR` at an existing folder
      or Obsidian vault (then set `LOLA_NOTES_STYLE="obsidian"`).
    - **Language** for notes and reports (`LOLA_LANGUAGE`).

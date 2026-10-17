@@ -35,7 +35,8 @@
 #   opus, sonnet, haiku, fable            → only the family is checked: "Opus <any version>"
 #
 # Prints the pane id on the last line. Exit 1 if the banner doesn't match: then nothing was
-# sent, the pane is closed again, and the banner it showed is printed. Exit 3 at the cap.
+# sent, the pane is closed again, and the banner it showed is printed (or, if claude stopped
+# at "Do you trust this folder?", that the folder is not trusted). Exit 3 at the cap.
 #
 #   lola-spawn review "MAJA · reviewer (LOLA)" claude-opus-5-5 high "You are MAJA …"
 #   lola-spawn --role ux/critic --domain work --name CILLA "Review the checkout flow …"
@@ -202,8 +203,10 @@ out=""
 for _ in $(seq 1 15); do
   out=$(tmux capture-pane -t "$P" -p)
   echo "$out" | grep -qE "$shown_re with" && echo "$out" | grep -q '^❯' && break
+  echo "$out" | grep -q 'Accessing workspace' && break   # the trust dialog never gets a banner
   sleep 2
 done
+trust=""; echo "$out" | grep -q 'Accessing workspace' && trust=1
 line=$(echo "$out" | grep -oE "[A-Za-z]+ [0-9.]+ with [a-z]+ effort( · [A-Za-z][A-Za-z ]*[A-Za-z])?" | head -1)
 want_re="^${shown_re} with ${effort} effort"
 if [ -n "$plan" ]; then want_re="${want_re} · ${plan}\$"; fi
@@ -214,6 +217,10 @@ if ! [[ "$line" =~ $want_re ]]; then
   closed="left open"
   if [ "$(tmux display -p -t "$P" "#{${LOLA_LABEL_OPTION}}" 2>/dev/null)" = "$label" ]; then
     tmux kill-pane -t "$P" && closed="closed"
+  fi
+  if [ -n "$trust" ]; then
+    echo "ERROR: folder not trusted: open claude in $cwd once and answer yes, or set LOLA_SPECIALIST_CWD to a folder you have trusted. Nothing sent; pane $P $closed."
+    exit 1
   fi
   echo "ERROR: banner says '${line:-nothing}', expected '$want'. Nothing sent; pane $P $closed."
   exit 1

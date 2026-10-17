@@ -120,6 +120,32 @@ spawn --role ux/ui --domain nope >/dev/null; [ $? -eq 2 ] && ok "spawn --role: u
 out=$(spawn review "MAJA · reviewer (LOLA)" claude-opus-5-5 high "hi"); [[ "$out" == *"label 'MAJA · reviewer (LOLA)'"* ]] && ok "spawn: positional form still works" || bad "spawn positional: $out"
 [ -e "$tmp/home/.spawn.lock" ] && bad "spawn --dry-run left a lock" || ok "spawn --dry-run takes no lock"
 
+# A trust dialog instead of a banner: lola-spawn names the cause. A fake tmux serves the
+# fixture as the pane capture; the early exit from the wait loop keeps this fast.
+mkdir -p "$tmp/fakebin"
+cat > "$tmp/fakebin/tmux" <<'FAKE'
+#!/usr/bin/env bash
+case "$1" in
+  has-session) exit 1 ;;
+  list-panes) case " $* " in *pane_id*) echo %9 ;; esac ;;
+  capture-pane) cat "$FAKE_PANE" ;;
+esac
+exit 0
+FAKE
+chmod +x "$tmp/fakebin/tmux"
+out=$(PATH="$tmp/fakebin:$PATH" FAKE_PANE="$root/test/fixtures/menu-trust-workspace.txt" LOLA_CONFIG=/dev/null LOLA_HOME="$tmp/home" \
+  bash "$root/bin/lola-spawn" review "MAJA · reviewer (LOLA)" claude-opus-5-5 high "hi" 2>&1); rc=$?
+[ "$rc" -eq 1 ] && [[ "$out" == *"folder not trusted: open claude in "*" once and answer yes"* && "$out" == *"Nothing sent"* ]] \
+  && ok "spawn: the trust dialog is named, not 'banner says nothing'" || bad "spawn trust dialog (rc $rc): $out"
+
+# lola-init proposes ~/dev/private, not $HOME, on a new config; it never touches an existing one.
+ih="$tmp/inithome"; mkdir -p "$ih/dev/private"
+HOME="$ih" LOLA_HOME="$ih/.lola" LOLA_CONFIG="" bash "$root/bin/lola-init" >/dev/null 2>&1
+grep -qxF 'LOLA_SPECIALIST_CWD="$HOME/dev/private"' "$ih/.lola/config.sh" && ok "init: specialist folder proposed as ~/dev/private" || bad "init: specialist folder: $(grep '^LOLA_SPECIALIST_CWD' "$ih/.lola/config.sh")"
+sed -i 's|^LOLA_SPECIALIST_CWD=.*|LOLA_SPECIALIST_CWD="$HOME"|' "$ih/.lola/config.sh"
+HOME="$ih" LOLA_HOME="$ih/.lola" LOLA_CONFIG="" bash "$root/bin/lola-init" >/dev/null 2>&1
+grep -qxF 'LOLA_SPECIALIST_CWD="$HOME"' "$ih/.lola/config.sh" && ok "init: an existing config is left alone" || bad "init rewrote an existing config"
+
 # install.sh in an empty HOME: the rendered CLAUDE.md must carry the real notes path. The
 # config says "$LOLA_HOME/notes"; read bare, without the loader, that once rendered as "/notes".
 nh="$tmp/newuser"; mkdir -p "$nh"

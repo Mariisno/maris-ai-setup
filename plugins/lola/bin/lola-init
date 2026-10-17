@@ -21,7 +21,13 @@ mk_file() { # <path> <template>
 
 LOLA_HOME="${LOLA_HOME:-$HOME/.lola}"
 LOLA_CONFIG="${LOLA_CONFIG:-$LOLA_HOME/config.sh}"
+new_config=""; [ -e "$LOLA_CONFIG" ] || new_config=1
 mk_file "$LOLA_CONFIG" "$root/templates/config.example.sh"
+# Specialist panes must not start in $HOME: Claude Code doesn't remember folder trust there,
+# so each pane would stop at "Do you trust this folder?". Propose ~/dev/private on a new config.
+if [ -n "$new_config" ] && [ -d "$HOME/dev/private" ]; then
+  sed -i 's|^LOLA_SPECIALIST_CWD="\$HOME"$|LOLA_SPECIALIST_CWD="$HOME/dev/private"|' "$LOLA_CONFIG"
+fi
 
 # Read the config now that it exists.
 # shellcheck source=../lib/lola-config.sh
@@ -42,6 +48,7 @@ echo "Lola is set up."
 [ ${#kept[@]} -gt 0 ] && printf '  kept     %s\n' "${kept[@]}"
 echo
 echo "Config: $LOLA_CONFIG — edit it to name your leads, point at your notes, add accounts."
+[ "$LOLA_SPECIALIST_CWD" = "$HOME" ] && echo "Note: LOLA_SPECIALIST_CWD is your home folder. Set it to a project folder and open claude there once (answer yes to the trust question), or specialist panes stop at 'Do you trust this folder?'."
 missing=()
 for t in tmux jq claude python3; do command -v "$t" >/dev/null 2>&1 || missing+=("$t"); done
 [ ${#missing[@]} -gt 0 ] && echo "Missing on PATH: ${missing[*]}"
