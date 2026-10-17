@@ -17,7 +17,8 @@ minutes; this file is the plugin's own reference.
 | `roles/` | The role catalogue: a craft per file (`ux/ui`, `dev/backend`, `test/tester` …) and a domain per file (`domains/work.md`), read by `lola-spawn --role` |
 | `lola-spawn` | Start a specialist pane, from the catalogue or by hand; verify model, effort and account in the banner; cap per lead; send the brief |
 | `lola-send` | Send a message to a pane and verify it landed; long messages go as a file |
-| `lola-revive` | Rebuild the lead sessions after a restart. Starts claude only in empty shells, and leaves alone any tmux session Lola didn't create |
+| `lola-revive` | Rebuild the lead sessions after a restart and resume each lead's own conversation (`--resume` with the id the identity hook saved). Starts claude only in empty shells, and leaves alone any tmux session Lola didn't create |
+| `lola-session-start` | A SessionStart hook: reads the pane label, tells a lead or specialist who it is and which skill to load, and saves a lead's session id in `~/.lola/state/<NAME>.session` for `lola-revive` |
 | `lola-watch-report` | The deterministic checks behind WATCH |
 | `lola-dig-guard` | A hook that warns a lead when it starts doing the digging itself |
 | `lola-init` | Create the config, inboxes, queue and folders. Idempotent |
@@ -48,8 +49,9 @@ documents each key:
   you set `LOLA_GITHUB_USER`.
 - **Files:** `lola-init` creates the config, the inboxes, the queue and empty folders, and
   never overwrites. `lola-send` writes long messages as files in the assignment folder.
-  `lola-spawn` holds a short lock file in `~/.lola` while it counts. Nothing else writes
-  files; `lola-watch-report` only reads.
+  `lola-spawn` holds a short lock file in `~/.lola` while it counts. `lola-session-start`
+  writes one small state file per lead (`~/.lola/state/<NAME>.session`: the session id).
+  Nothing else writes files; `lola-watch-report` only reads.
 - **tmux:** `lola-spawn` and `lola-revive` create sessions and windows, label panes, and
   start claude in empty shells. They mark everything they create with the tmux option
   `@lola` and change nothing that lacks the mark: a session of yours with the same name is

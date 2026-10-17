@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Part of Mari's AI Setup by Mari Svennevik Notland · https://github.com/Mariisno/maris-ai-setup · MIT License
+# lola-session-start — SessionStart hook: tell a session who it is, and remember it.
+#
+# A lead pane started by lola-revive is a plain `claude` until something says otherwise;
+# nothing in a fresh or resumed session knows it is a lead. This hook reads the pane label
+# (LOLA_LABEL_OPTION, @label by default) and:
+#   lead pane        ("NAME · lead", NAME in LOLA_LEADS)
+#                    → adds "You are NAME, the lead for <domain>; load lola:lead …" to the
+#                      session's context, and writes the session id to
+#                      <LOLA_HOME>/state/NAME.session so lola-revive can `--resume` exactly
+#                      this conversation after a restart (never `--continue`, which takes
+#                      whatever was last in the directory).
+#   specialist pane  ("NAME · ROLE · Domain (LEAD)")
+#                    → adds "You are a specialist under LEAD; load lola:specialist …".
+# Outside tmux, without a label, or with a label that is neither: nothing, exit 0. It never
+# blocks a session and never writes anything but the one state file.
+here="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=../lib/lola-config.sh
+. "$here/../lib/lola-config.sh"
+
+input=$(cat)
+[ -n "${TMUX_PANE:-}" ] || exit 0
+command -v jq >/dev/null 2>&1 || exit 0
+label=$(tmux display -p -t "$TMUX_PANE" "#{${LOLA_LABEL_OPTION}}" 2>/dev/null)
+[ -n "$label" ] || exit 0
+sid=$(printf '%s' "$input" | jq -r '.session_id // ""')
+
+ctx=""
+if lola_is_lead "$label"; then
+  name="${label%% *}"; domain=""
+  for row in "${LOLA_LEADS[@]}"; do
+    if [ "${row%%|*}" = "$name" ]; then domain="${row#*|}"; domain="${domain%%|*}"; break; fi
+  done
+  if [ -n "$sid" ]; then
+    mkdir -p "$LOLA_HOME/state" 2>/dev/null &&
+      printf 'session_id=%s\ncwd=%s\nwritten=%s\n' "$sid" "$PWD" "$(date '+%Y-%m-%d %H:%M')" > "$LOLA_HOME/state/$name.session.tmp" &&
+      mv "$LOLA_HOME/state/$name.session.tmp" "$LOLA_HOME/state/$name.session"
+  fi
+  ctx="You are ${name}, the Lola lead for: ${domain:-your domain}. Load the lola:lead skill before anything else. You route, brief named specialists and keep the map; you do not dig (rule four). Your inbox: ${LOLA_INBOX_DIR}/${name}.md. The queue of what waits on the human: ${LOLA_QUEUE_FILE}. Config: ${LOLA_CONFIG}. The human is ${LOLA_USER_NAME}; write to them in ${LOLA_LANGUAGE}. If this session was resumed, read your inbox and today's session log before answering."
+else
+  lead=$(printf '%s' "$label" | sed -n 's/.*(\([^()]*\))[[:space:]]*$/\1/p')
+  case "$label" in *"·"*) ;; *) lead="" ;; esac
+  if [ -n "$lead" ] && lola_is_lead "$lead"; then
+    ctx="You are «${label}», a specialist under the lead ${lead}. Load the lola:specialist skill. Your assignment is the first message or the file it points to; if this session was resumed, re-read it from disk. Receipt first, three lines, to ${LOLA_INBOX_DIR}/${lead}.md; never type into the lead's pane. Write in ${LOLA_LANGUAGE}."
+  fi
+fi
+[ -n "$ctx" ] || exit 0
+jq -nc --arg m "$ctx" '{hookSpecificOutput: {hookEventName: "SessionStart", additionalContext: $m}}'
+exit 0

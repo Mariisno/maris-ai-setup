@@ -47,6 +47,9 @@ Check, and report each as ✓ or ✗ with the fix:
 - `bash "${CLAUDE_PLUGIN_ROOT}/bin/lola-watch-report" --no-gh` runs and prints a report
 - the dig guard is active: it ships as a hook in this plugin, so it is on whenever the plugin
   is enabled, and silent outside lead panes. `LOLA_DIG_GUARD_EVERY=0` in the config turns it off.
+- the identity hook works: in a lead pane, `~/.lola/state/<NAME>.session` exists and holds this
+  session's id. If not, the pane has no label (`lola-revive` sets it) or the plugin's hooks
+  aren't loaded (`/hooks` lists `lola-session-start` under SessionStart).
 
 ## revive — after a restart
 
@@ -55,5 +58,9 @@ will do; then run it without `--dry`. It never starts claude on top of a running
 and it only changes tmux sessions Lola created (marked with the tmux option `@lola`). If it
 reports `SKIP` for a session, the user has a session of their own with that name: offer to
 rename theirs or to pick another session name in `LOLA_LEADS`. Don't touch theirs.
-Afterwards, check each lead: its first answer should show it knows its role. If a lead woke
-up empty, `claude --resume <conversation id>` in that pane picks the right conversation.
+Leads come back with `claude --resume <id>`, the id the SessionStart hook
+(`lola-session-start`) saved in `~/.lola/state/<NAME>.session` while that lead last ran. A
+lead without a state file (first start, or the hook never ran in its pane) starts fresh, and
+the same hook tells it who it is and which skill to load. Afterwards, check each lead: its
+first answer should show it knows its role. If a lead still woke up as a stranger, the pane
+label is missing or wrong: `tmux display -p -t <pane> '#{@label}'` must start with its NAME.

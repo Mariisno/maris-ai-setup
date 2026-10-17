@@ -11,10 +11,10 @@
 #
 # Structure, from LOLA_LEADS: one tmux session per lead (window named after the lead), plus
 # the specialist session, detached on purpose.
-# Leads resume with `claude --continue` (the most recent conversation in the pane's working
-# directory), and start fresh when there is none. --continue can pick the wrong one when
-# several sessions share a directory: if you have the conversation id, use
-# `claude --resume <id>` in that pane instead.
+# Leads resume with `claude --resume <id>`, the id the SessionStart hook (lola-session-start)
+# wrote to <LOLA_HOME>/state/<NAME>.session the last time that lead ran. Without a state file
+# the lead starts fresh, and the hook tells it who it is. Never `claude --continue`: it takes
+# whatever conversation was last in the directory, which in $HOME is rarely the lead.
 # After a restart, check before trusting: no orphaned process should still hold a lead's old
 # transcript (`lsof <transcript>`), and a lead isn't back until its first answer shows it
 # knows its role.
@@ -70,10 +70,14 @@ lead_flags="--model $LOLA_LEAD_MODEL --effort $LOLA_LEAD_EFFORT"
 for row in "${LOLA_LEADS[@]}"; do
   IFS='|' read -r name domain sess cwd <<< "$row"
   [ -n "$name" ] || continue
-  # Resume the latest conversation; with none to resume, --continue exits non-zero and a
-  # fresh session starts instead.
-  declare_window "$sess" "$name" "${cwd:-$HOME}" "$name · lead" \
-    "claude --continue $lead_flags || claude $lead_flags" && lead_windows+=("$sess:$name")
+  # Resume exactly this lead's last conversation when the hook remembered it; if the id is
+  # gone (transcript deleted), --resume exits non-zero and a fresh session starts instead.
+  sid=""; sf="$LOLA_HOME/state/$name.session"
+  [ -f "$sf" ] && sid=$(sed -n 's/^session_id=//p' "$sf" | head -1)
+  case "$sid" in *[!A-Za-z0-9_-]*) sid="" ;; esac   # an id is letters, digits, - and _
+  start="claude --name $(q "$name") $lead_flags"
+  [ -n "$sid" ] && start="claude --resume $sid --name $(q "$name") $lead_flags || $start"
+  declare_window "$sess" "$name" "${cwd:-$HOME}" "$name · lead" "$start" && lead_windows+=("$sess:$name")
 done
 spec_ok=0
 declare_window "$LOLA_SPECIALIST_SESSION" "slot-1" "$LOLA_SPECIALIST_CWD" "free specialist slot" "" && spec_ok=1
