@@ -199,10 +199,12 @@ tmux send-keys -t "$P" -l "$start $add_dir --name $(printf '%q' "$window") --mod
 tmux send-keys -t "$P" Enter
 
 # --- Check the banner -----------------------------------------------------------------
-out=""
+out=""; trust=""
 for _ in $(seq 1 15); do
   out=$(tmux capture-pane -t "$P" -p)
   echo "$out" | grep -qE "$shown_re with" && echo "$out" | grep -q '^❯' && break
+  # The folder-trust prompt comes before the banner and never goes away on its own.
+  echo "$out" | lola_shows_trust && { trust=1; break; }
   sleep 2
 done
 line=$(echo "$out" | grep -oE "[A-Za-z]+ [0-9.]+ with [a-z]+ effort( · [A-Za-z][A-Za-z ]*[A-Za-z])?" | head -1)
@@ -215,6 +217,14 @@ if ! [[ "$line" =~ $want_re ]]; then
   closed="left open"
   if [ "$(tmux display -p -t "$P" "#{${LOLA_LABEL_OPTION}}" 2>/dev/null)" = "$label" ]; then
     tmux kill-pane -t "$P" && closed="closed"
+  fi
+  if [ -n "$trust" ]; then
+    echo "ERROR: Claude Code asks whether to trust $cwd, so there is no banner yet. Nothing answered, nothing sent; pane $P $closed."
+    if [ "$cwd" = "$HOME" ]; then
+      echo "  Claude Code never saves trust for the home folder: it asks on every start there."
+    fi
+    echo "  Start specialists in a folder you have trusted once: LOLA_SPECIALIST_CWD in the config, or LOLA_CWD=<folder> for one spawn."
+    exit 1
   fi
   echo "ERROR: banner says '${line:-nothing}', expected '$want'. Nothing sent; pane $P $closed."
   exit 1
