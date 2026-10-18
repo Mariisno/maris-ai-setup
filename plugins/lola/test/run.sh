@@ -26,6 +26,14 @@ for f in "$root"/test/fixtures/prompt-*.txt; do
   if lola_shows_menu < "$f"; then bad "prompt: $(basename "$f") was seen as a menu"; else ok "prompt: $(basename "$f")"; fi
 done
 
+# lola_shows_trust: the folder-trust prompt, old and new, is seen; other menus and the composer are not.
+for f in menu-trust.txt menu-trust-workspace.txt; do
+  if lola_shows_trust < "$root/test/fixtures/$f"; then ok "trust: $f"; else bad "trust: $f was not seen as the trust prompt"; fi
+done
+for f in menu-permission.txt menu-question.txt prompt-working.txt; do
+  if lola_shows_trust < "$root/test/fixtures/$f"; then bad "trust: $f was seen as the trust prompt"; else ok "trust: not $f"; fi
+done
+
 # lola_unsent_text: what stands typed but unsent in the composer. Fixture → expected text.
 unsent_case() { # <fixture> <expected>
   got=$(lola_unsent_text < "$root/test/fixtures/$1")
