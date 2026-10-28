@@ -71,7 +71,8 @@ and the config decide.
 **Requirements:** macOS or Linux · [tmux](https://github.com/tmux/tmux) · [jq](https://jqlang.org) ·
 Python 3 · Claude Code 2.1.284 or later. Claude Code must already **trust the folder
 specialists start in** (`LOLA_SPECIALIST_CWD`, your home folder by default): run `claude` there
-once and accept the prompt, or the first `lola-spawn` stops at it and says so.
+once and accept the prompt, or `lola-spawn` stops at it and says so. Claude Code never saves
+trust for the home folder itself, so point `LOLA_SPECIALIST_CWD` at a folder below it.
 
 1. **Clone and look before you leap:**
 

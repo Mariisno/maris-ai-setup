@@ -141,6 +141,15 @@ lola_shows_menu() {
     }'
 }
 
+# lola_shows_trust — reads a pane capture on stdin; true when Claude Code asks whether to
+# trust the folder it starts in (the older «Do you trust the files in this folder?» and,
+# from 2.1.30x, «Accessing workspace … Yes, I trust this folder», where «No, exit» is the
+# default). Claude Code never saves that answer for the home folder, so a pane started in
+# $HOME asks every time.
+lola_shows_trust() {
+  grep -qE 'Do you trust the files in this folder|Yes, I trust this folder|Is this a project you created or one you trust'
+}
+
 # lola_lock <name> [seconds] — take <LOLA_HOME>/.<name>.lock, a directory (mkdir is atomic on
 # every filesystem). A lock older than two minutes is a crash's leftover and is taken over.
 # Waits up to [seconds] (default 60); fails with 1 when the lock is still held. Pair with
