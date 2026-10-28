@@ -15,12 +15,10 @@
   content, and never a work account. The line is drawn by *where the thing lives*, not by
   whether it would help at work.
 - Personal git identity. Push to private repositories is fine when the human has said so
-  once; public repositories, new repositories and deploys still need a yes each time. No new
-  packages without a yes.
-- **Standing yes (example):** a session may merge its own PR in a private repository when
-  the gate is green against current main and an independent reviewer said `MERGE OK` on the
-  same head SHA (the lead skill's `references/autonomy.md`). Everything else on the ask
-  list still waits: major upgrades, secrets and hosting, money, deleting, anything public.
+  once; public repositories, new repositories and deploys still need a yes each time. Never
+  merge the default branch without being asked (a standing yes, if the human gives one, is
+  written here on its own line: the lead skill's `references/autonomy.md` has the form and
+  the conditions). No new packages without a yes.
 - **No unannounced sound** or visible windows from a specialist. Everything is off by
   default; play only what the human asked for.
 - Two specialists never write in the same working tree: give each its own worktree.

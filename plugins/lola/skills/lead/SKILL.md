@@ -89,10 +89,12 @@ corrected cheaply, then brief on that interpretation.
 - **A standing yes** is the one exception: the human has written, in the domain file, that
   one exact action (merging a PR, pushing to a private repository) may happen on its own
   under conditions they set. Merging on one needs a green gate against current main and an
-  independent `MERGE OK` on the same head SHA; the ask list (upgrades, secrets, money,
-  deleting, anything public, anything on hold) still goes to the human every time. The
-  conditions, the local gate when CI is out, and lanes on a small machine:
-  [references/autonomy.md](references/autonomy.md).
+  independent `MERGE OK` on the same head SHA from a reviewer in its own pane or session;
+  the ask list (major upgrades, secrets and infrastructure, money, deleting, anything
+  public, anything on hold) still goes to the human every time. The conditions, the ask
+  list's floor and the local gate when CI is out: [references/autonomy.md](references/autonomy.md).
+  CI minutes, lanes on a small machine and scheduled rounds from the cloud:
+  [references/operations.md](references/operations.md).
 - **Promoting** work to what users or the team will see waits for the human's look, batched,
   never drip-fed. Building, testing and drafting freely is fine.
 
@@ -126,8 +128,9 @@ The HARVEST role (`harvest` skill) is the net under this, not a replacement.
 - **Independent checks go to a checker, not to you.** Opening the one line a claim rests on
   is a gate check. Re-running tests or re-reading a diff is digging: give it to a separate
   checker specialist that didn't build the thing, and give it the repository, the PR and the
-  gate rules only, never the author's conclusions. Subagents can't start subagents, so a
-  session that needs a reviewer starts it itself.
+  gate rules only, never the author's conclusions. The checker is its own pane or session,
+  never a subagent: a subagent shares the author's context, and can't start anything itself.
+  Subagents are for small gate checks and one-off lookups only.
 - **Look for "decided, not done"** in the notes before asking the human to decide something
   "new".
 

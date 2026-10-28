@@ -40,12 +40,16 @@ Even when I've asked you to work independently, always ask before:
 - installing software, packages or tools
 - changing settings or configuration, even reversible ones
 
-Editing files we're actively working on together is fine without asking.
+The one exception is a standing yes I have written down, and the list above still holds
+inside it:
 
-- «A standing yes, if you give one: the one action a session may do on its own, and under
-  which conditions (e.g. merge its own PR when the gate is green and an independent reviewer
-  said MERGE OK on the same commit). Write it in the domain file too; the `lead` skill has
-  the conditions.»
+- «The one action a session may do on its own, and under which conditions, e.g. merge its own
+  PR when the gate is green and an independent reviewer in its own session said MERGE OK on
+  the same commit. Write it in the domain file too; the `lead` skill has the conditions and
+  the ask list that always stays (major upgrades, secrets and infrastructure, money,
+  deleting, anything public, anything on hold).»
+
+Editing files we're actively working on together is fine without asking.
 
 # What I work on, and my goals
 
