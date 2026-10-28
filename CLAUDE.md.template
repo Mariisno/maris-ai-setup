@@ -42,6 +42,11 @@ Even when I've asked you to work independently, always ask before:
 
 Editing files we're actively working on together is fine without asking.
 
+- «A standing yes, if you give one: the one action a session may do on its own, and under
+  which conditions (e.g. merge its own PR when the gate is green and an independent reviewer
+  said MERGE OK on the same commit). Write it in the domain file too; the `lead` skill has
+  the conditions.»
+
 # What I work on, and my goals
 
 - **Work:** «the surfaces and tools you work in». **Private:** «hobby projects, where they live».

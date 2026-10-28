@@ -9,7 +9,7 @@ minutes; this file is the plugin's own reference.
 
 | Part | What it does |
 |---|---|
-| `lead` skill | The method for a lead: roles, channels, the five-part brief, the gates, rule four and rule five, the tmux mechanics |
+| `lead` skill | The method for a lead: roles, channels, the five-part brief, the gates and the standing yes (self-merge conditions, the local gate when CI is out, lanes on a small machine), rule four and rule five, the tmux mechanics |
 | `specialist` skill | How a specialist starts, works and finishes: receipt first, session log, queue, `/exit` |
 | `watch` skill | WATCH role: a scheduled hygiene round that closes finished panes and routes findings |
 | `harvest` skill | HARVEST role: a daily sweep that saves the insight leads missed, and a weekly "threads and connections" note |
