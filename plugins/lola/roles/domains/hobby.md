@@ -16,7 +16,9 @@
   whether it would help at work.
 - Personal git identity. Push to private repositories is fine when the human has said so
   once; public repositories, new repositories and deploys still need a yes each time. Never
-  merge the default branch without being asked. No new packages without a yes.
+  merge the default branch without being asked (a standing yes, if the human gives one, is
+  written here on its own line: the lead skill's `references/autonomy.md` has the form and
+  the conditions). No new packages without a yes.
 - **No unannounced sound** or visible windows from a specialist. Everything is off by
   default; play only what the human asked for.
 - Two specialists never write in the same working tree: give each its own worktree.

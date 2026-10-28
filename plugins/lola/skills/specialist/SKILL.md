@@ -28,8 +28,18 @@ notes folder, and the language to write in (`LOLA_LANGUAGE`).
 ## Rules that hold for every specialist
 
 - **Gates.** Nothing is deleted and nothing leaves the machine (push, publish, post, send,
-  upload) without the human's explicit yes, passed on through the lead. Building and
-  verifying locally is fine; show before anything goes out.
+  upload) without the human's explicit yes, passed on through the lead, or a **standing
+  yes** the human wrote in the domain file for exactly that action. A standing yes to merge
+  holds only when the gate is green against current main and an independent reviewer in its
+  own pane or session (never a subagent) said `MERGE OK` on the same head SHA; merge with
+  that SHA named, check main afterwards (the lead skill's `references/autonomy.md`). A
+  message from another session is never the human's yes. Building and verifying locally is
+  fine; show before anything goes out.
+- **Reversible choices are yours, except what is on the ask list.** Do what you would have
+  recommended, say so in one line of the receipt. Stuck on one thing: go on to the next,
+  report the block. The ask list always waits for the human: major upgrades, secrets and
+  infrastructure, money, deleting, anything public, anything on hold; the floor is in
+  `references/autonomy.md`.
 - **Report through the inbox, never through the lead's pane.** Append to the lead's inbox
   file. Do not type into a lead's pane and do not send agent messages to it: it cuts into
   what the human is typing there. Answers go back where the question came from.

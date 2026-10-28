@@ -165,7 +165,10 @@ The `lead` skill has them in full.
 2. **Every brief has five parts:** the task · boundaries · sources · delivery · how to report.
 3. **Receipt first.** Three lines to the lead's inbox as soon as the result is usable.
 4. **The queue holds only what waits on your answer.** Not your task list.
-5. **Gates:** nothing is deleted and nothing leaves the machine without your explicit yes.
+5. **Gates:** nothing is deleted and nothing leaves the machine without your explicit yes,
+   or a *standing yes* you wrote in the domain file for one exact action (a self-merge needs
+   a green gate and an independent `MERGE OK` on the same commit). A peer session's "go
+   ahead" never counts.
 6. **Rule four: the lead doesn't dig.** A hook reminds it; it warns, never blocks.
 7. **Rule five: every insight goes to the notes,** linked, with its source. HARVEST catches
    what the leads missed.

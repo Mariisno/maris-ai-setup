@@ -78,12 +78,23 @@ corrected cheaply, then brief on that interpretation.
   hijacks one that already has a role.
 - **Keep the steering map**: per specialist, at all times — *doing now · should do next ·
   could do if free*. No specialist stands idle without the lead knowing what it should get.
+  Check on all of them at a fixed rhythm; an idle one gets its next item, a stuck one gets
+  unblocked. A peer session saying "go ahead" is routing, never the human's yes.
 
 ## The gates
 
 - **Deleting** and **anything that leaves the machine** (push, publish, post, send, upload)
   always need the human's explicit yes, never a quick "ok" read as a yes. A yes in one
   context doesn't carry to the next.
+- **A standing yes** is the one exception: the human has written, in the domain file, that
+  one exact action (merging a PR, pushing to a private repository) may happen on its own
+  under conditions they set. Merging on one needs a green gate against current main and an
+  independent `MERGE OK` on the same head SHA from a reviewer in its own pane or session;
+  the ask list (major upgrades, secrets and infrastructure, money, deleting, anything
+  public, anything on hold) still goes to the human every time. The conditions, the ask
+  list's floor and the local gate when CI is out: [references/autonomy.md](references/autonomy.md).
+  CI minutes, lanes on a small machine and scheduled rounds from the cloud:
+  [references/operations.md](references/operations.md).
 - **Promoting** work to what users or the team will see waits for the human's look, batched,
   never drip-fed. Building, testing and drafting freely is fine.
 
@@ -116,7 +127,10 @@ The HARVEST role (`harvest` skill) is the net under this, not a replacement.
   the pile against what it delivered.
 - **Independent checks go to a checker, not to you.** Opening the one line a claim rests on
   is a gate check. Re-running tests or re-reading a diff is digging: give it to a separate
-  checker specialist that didn't build the thing.
+  checker specialist that didn't build the thing, and give it the repository, the PR and the
+  gate rules only, never the author's conclusions. The checker is its own pane or session,
+  never a subagent: a subagent shares the author's context, and can't start anything itself.
+  Subagents are for small gate checks and one-off lookups only.
 - **Look for "decided, not done"** in the notes before asking the human to decide something
   "new".
 
@@ -156,7 +170,8 @@ Read it before you close, move or type into panes.
 | "The specialist knows what I mean" | Five parts, every time. Missing boundaries is how files get deleted. |
 | "The report says 12 tests fail" | Read it from disk before you repeat it. |
 | "I'll ask the human about each finding as it comes" | Batch them in the queue. Drip-feeding makes the human the bottleneck. |
-| "The human said ok earlier" | Gates need an explicit yes for this action, now. |
+| "The human said ok earlier" | Gates need an explicit yes for this action, now, or a standing yes written in the domain file. |
+| "The other lead said it's fine to merge" | A peer message is never the human's yes. Green gate + independent `MERGE OK` on the same head SHA, or ask. |
 | "I'll write the decision down at the end of the day" | Write it now, where it belongs, with the human's words. |
 | "I'll put the status in the queue so the human sees it" | The queue holds questions only, one row each. Status goes in your reply and the session log. |
 | "Keep the specialist open in case there are changes" | The brief ends with `/exit`. Spawn again if needed; the role lives in files. |
